@@ -1,0 +1,79 @@
+# SDD Schema
+
+定义 SDD artifact 的内容约束、依赖链和模板引用。
+
+## 职责范围
+
+Schema **只管内容约束**（产物里应该有什么），**不管流程编排**（谁来做、怎么做）。
+
+流程编排的职责完全由 SDD action skills 承担。
+
+## Artifact 依赖链
+
+```
+brainstorm.md ──→ proposal.md ──→ specs/ ──→ tasks.md ──→ plan.md
+  (可选)            (必需)     ↗   (必需)      (必需)
+                            proposal.md
+                               ↓
+                           design.md (可选)
+```
+
+## 必需 Artifact
+
+| Artifact | 必需性 | 说明 |
+|----------|--------|------|
+| `proposal.md` | 必需 | 变更提案 |
+| `specs/` | 必需 | 详细规范 |
+| `tasks.md` | 必需 | 任务清单 |
+
+## 可选 Artifact
+
+| Artifact | 说明 | 跳过条件 |
+|----------|------|----------|
+| `brainstorm.md` | 头脑风暴 | 需求已明确 |
+| `design.md` | 技术设计 | 简单变更 |
+| `plan.md` | 实施计划 | 紧急修复（不推荐） |
+
+## 模板清单
+
+9 个模板，位于 `templates/` 目录：
+- `brainstorm.md`
+- `proposal.md`
+- `spec.md`
+- `design.md`
+- `tasks.md`
+- `plan.md`
+- `review.md`
+- `project-context.md`
+- `project-rules.md`
+
+## Tech Rules
+
+语言特定的规则文件，位于 `tech-rules/` 目录：
+- `nodejs.md` — Node.js / JavaScript
+- `typescript.md` — TypeScript
+- `go.md` — Go
+- `python.md` — Python
+- `java.md` — Java
+- `rust.md` — Rust
+
+`sdd-init` 根据检测到的技术栈，将对应规则注入到 `project-rules.md` 中。
+
+## Spec 格式要求
+
+每个 spec 必须包含：
+- Capability 名称
+- GIVEN/WHEN/THEN 场景（可测试断言）
+- 正常路径 + 边界路径
+- 非功能要求（如适用）
+
+## Tasks 格式要求
+
+每个 task 必须包含：
+- Checkbox 格式
+- `[spec:domain#scenario]` 链接到对应 spec 场景
+- 描述（做什么，不描述怎么做）
+
+## Decision Traceability
+
+`proposal.md` 和 `design.md` 必须包含"决策追溯"节，显式引用 `brainstorm.md` 中的关键决策。
