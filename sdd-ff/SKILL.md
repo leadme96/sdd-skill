@@ -19,9 +19,13 @@ user-invocable: true
 ### 核心执行（invoke 底层 skill）
 Invoke `openspec:ff-change` 批量生成所有缺失 artifact。
 
-**注意**：ff 不生成 `plan.md`——plan 由 `sdd-plan` 单独生成，确保 plan 质量由 Superpowers 的 writing-plans 纪律保障。
+**Override 项**：
+- 不生成 `plan.md`——plan 由 `sdd-plan` 单独生成，确保 plan 质量由 Superpowers 的 writing-plans 纪律保障
+- ff 自然停在 `tasks.md`
 
-ff 自然停在 `tasks.md`。
+**保留项**：
+- `openspec:ff-change` 的批量生成逻辑
+- 所有模板格式校验
 
 ### 后置逻辑（SDD 自有）
 1. 批量校验所有生成的 artifact

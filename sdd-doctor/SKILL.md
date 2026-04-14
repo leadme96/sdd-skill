@@ -13,7 +13,14 @@ user-invocable: true
 3. 当前活跃变更状态
 4. 项目健康度
 
-## 处理步骤
+## 三段式结构
+
+### 前置逻辑（SDD 自有）
+1. 扫描 `.claude/skills/` 目录，检查 sdd-* skills 完整性
+2. 扫描 `openspec/changes/` 目录，识别活跃变更
+
+### 核心执行（无委托，纯 SDD 自有逻辑）
+不 invoke 任何底层 skill，全部逻辑为 SDD 自有诊断：
 
 1. **检查 SDD skills 完整性**
    - 扫描 `.claude/skills/` 下是否有全部 12 个 sdd-* skills（含 sdd-init）
@@ -27,11 +34,18 @@ user-invocable: true
    - 扫描 `openspec/changes/` 下的活跃变更目录
    - 每个变更检查 artifact 完整度（哪些已有，哪些缺失）
 
-4. **输出诊断报告**
-   - Skill 缺失清单
-   - 当前活跃变更状态
-   - 建议下一步操作
+### 后置逻辑（SDD 自有）
+1. 汇总诊断结果
+2. 输出技能缺失清单、活跃变更状态、建议下一步操作
 
-## 输出
+## 产物
 
-诊断报告，不包含任何代码变更。
+诊断报告（输出到会话，不写文件），不包含任何代码变更。
+
+## 完成后引导
+
+> 本 action 已完成，诊断报告已输出。可安全 `/clear`。
+>
+> 推荐下一步：
+> - 有缺失 skill → 安装后重新运行 `sdd-doctor`
+> - 环境正常 → `sdd-propose` 创建变更提案

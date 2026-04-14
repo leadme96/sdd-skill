@@ -67,7 +67,7 @@ SDD skill 只做编排，核心工作委托给底层 skill：
 ### 大特性标准路径
 
 ```bash
-sdd-init           → openspec/ + project-context.md + project-rules.md + CLAUDE.md
+sdd-init           → openspec/ + CLAUDE.md
 /clear
 sdd-brainstorm   → brainstorm.md
 /clear
@@ -167,7 +167,7 @@ openspec/
 
 项目级安装：
 ```bash
-for skill in sdd-doctor sdd-brainstorm sdd-propose sdd-continue sdd-ff sdd-plan sdd-code sdd-review-spec sdd-review-code sdd-verify sdd-ship; do
+for skill in sdd-init sdd-doctor sdd-brainstorm sdd-propose sdd-continue sdd-ff sdd-plan sdd-code sdd-review-spec sdd-review-code sdd-verify sdd-ship; do
   ln -s "$(pwd)/sdd-skill/$skill" .claude/skills/$skill
 done
 ```

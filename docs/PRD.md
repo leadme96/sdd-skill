@@ -32,9 +32,10 @@ AI 辅助开发的两个痛点：
 - `sdd-verify` — 全面验证
 - `sdd-ship` — 归档合并
 
-Schema + 9 个模板：
+Schema + 7 个模板：
 - schema.yaml — artifact 定义、依赖链、内容约束
-- templates: brainstorm, proposal, spec, design, tasks, plan, review, project-context, project-rules
+- templates: brainstorm, proposal, spec, design, tasks, plan, review
+- config.yaml — context + rules（含代码模式参考）
 - tech-rules: nodejs, go, python, java, rust, typescript
 
 ## 关键设计决策

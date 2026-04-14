@@ -19,15 +19,14 @@ user-invocable: true
 ### 核心执行（invoke 底层 skill）
 Invoke `openspec:continue-change` 生成 `proposal.md`。
 
-使用 `openspec/schemas/sdd/templates/proposal.md` 模板。
+**Override 项**：
+- 输出位置：`openspec/changes/<change-name>/proposal.md`
+- 模板格式：使用 `openspec/schemas/sdd/templates/proposal.md`
+- 必填节约束：`决策追溯` 节必须引用 brainstorm.md 中的关键决策
 
-**模板必填节**：
-```markdown
-## 决策追溯
-<!-- 必填：引用 brainstorm.md 中的关键决策 -->
-- 选择 [X] 而非 [Y]：[原因]（见 brainstorm.md §关键决策）
-- 约束 [Z]：[来源]（见 brainstorm.md §约束分析）
-```
+**保留项**：
+- `openspec:continue-change` 的 artifact 生成逻辑
+- 模板格式校验
 
 ### 后置逻辑（SDD 自有）
 1. 决策追溯检查：验证 proposal 是否引用了 brainstorm 中的所有关键决策

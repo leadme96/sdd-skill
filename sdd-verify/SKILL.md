@@ -21,6 +21,13 @@ Invoke 两个底层 skills：
 1. `superpowers:verification-before-completion` — 执行完整测试套件
 2. `openspec:verify-change` — 逐条验证 spec scenario 覆盖率
 
+**Override 项**：
+- 无（直接调用底层 skills 的默认行为）
+
+**保留项**：
+- `superpowers:verification` 的完整测试套件
+- `openspec:verify-change` 的 spec 覆盖验证逻辑
+
 **验证内容**：
 - 所有测试通过
 - 所有 spec 场景已实现

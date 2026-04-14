@@ -15,7 +15,8 @@ user-invocable: true
 2. 检测项目技术栈并生成对应的 AI 边界与指引
 3. **扫描项目既有代码模式，提取统一模板和典型代码片段**
 4. 安装 SDD schema 和模板到项目
-5. 生成项目级 CLAUDE.md（包含 SDD 工作流说明）
+5. 将 context 和 rules **内联写入 `openspec/config.yaml`**（不生成独立文件）
+6. 生成项目级 CLAUDE.md（包含 SDD 工作流说明）
 
 ## 三段式结构
 
@@ -30,11 +31,19 @@ Invoke `openspec:init` 执行项目初始化：
 - 生成 `openspec/config.yaml`（设置 `schema: sdd`）
 - 创建 `openspec/changes/` 和 `openspec/specs/` 目录
 
+**Override 项**：
+- schema 设置：强制 `schema: sdd`（非默认值）
+- config.yaml 格式：将 context 和 rules 内联写入，不生成独立文件
+
+**保留项**：
+- `openspec:init` 的基础目录创建逻辑
+- 默认 schema/模板系统
+
 ### 后置逻辑（SDD 自有）
 1. **技术栈检测** — 扫描项目，识别技术栈和框架
 2. **代码模式扫描** — 提取项目统一的代码模板和典型片段（见下方规则）
-3. **生成项目 context** — 写入 `openspec/project-context.md`
-4. **生成项目 rules** — 写入 `openspec/project-rules.md`，注入检测到的代码模式和代码片段
+3. **生成项目 context** — 内联写入 `openspec/config.yaml` 的 `context:` 字段
+4. **生成项目 rules** — 内联写入 `openspec/config.yaml` 的 `rules:` 字段，注入检测到的代码模式和代码片段
 5. **安装 SDD schema** — 将 `openspec/schemas/sdd/` 复制到项目
 6. **生成 CLAUDE.md** — 项目级 AI 工作流指导
 7. 输出初始化报告
@@ -80,38 +89,33 @@ Invoke `openspec:init` 执行项目初始化：
 4. **控制长度**：单个代码片段不超过 80 行，超长文件截取前 80 行 + `...`
 5. **去重**：相似的模式只保留一个最完整的
 
-### 输出到 `project-rules.md`
+### 输出到 `config.yaml`
 
-提取的代码模式写入 `project-rules.md` 的"代码模式参考"节，格式如下：
+提取的代码模式写入 `openspec/config.yaml` 的 `rules.code_patterns:` 字段，格式如下：
 
-```markdown
-## 代码模式参考
-
-### Handler 模式
-来源: `src/routes/user.js`
-<!-- 展示项目的 Handler 统一写法 -->
-```<language>
-<code snippet>
-```
-
-### Service 模式
-来源: `src/services/userService.js`
-<!-- 展示 Service 层统一结构 -->
-```<language>
-<code snippet>
-```
+```yaml
+rules:
+  code_patterns:
+    handler:
+      source: "src/routes/user.js"
+      snippet: |
+        // 展示项目的 Handler 统一写法
+        ...
+    service:
+      source: "src/services/userService.js"
+      snippet: |
+        // 展示 Service 层统一结构
+        ...
 ```
 
 这样后续 `sdd-code` 执行时，AI 可以参考这些片段保持项目既有风格。
 
-## 输出
+## 产物
 
 ```
 <project-root>/
 ├── openspec/
-│   ├── config.yaml                    # schema: sdd
-│   ├── project-context.md             # 项目技术栈、架构、模块边界
-│   ├── project-rules.md               # AI 边界、指引 + 代码模式参考（含代码片段）
+│   ├── config.yaml                    # schema: sdd + context + rules（含代码模式参考）
 │   ├── specs/                         # 全局 spec
 │   ├── changes/                       # 活跃变更
 │   └── schemas/sdd/                   # SDD schema + 模板（安装副本）
@@ -121,7 +125,7 @@ Invoke `openspec:init` 执行项目初始化：
 ## 完成后引导
 
 > 本 action 已完成，SDD 工作流已初始化至 `<project-root>/openspec/`。
-> 已提取 N 种代码模式到 `project-rules.md`。可安全 `/clear`。
+> context 和 rules（含 N 种代码模式）已写入 `config.yaml`。可安全 `/clear`。
 >
 > 推荐下一步：
 > - 需求明确 → `sdd-propose` 创建第一个变更提案

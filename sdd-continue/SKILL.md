@@ -19,9 +19,18 @@ user-invocable: true
 ### 核心执行（invoke 底层 skill）
 Invoke `openspec:continue-change` 生成下一个 artifact。
 
-依赖链：
+**Override 项**：
+- 输出位置：`openspec/changes/<change-name>/<next-artifact>.md`
+- 模板格式：使用 `openspec/schemas/sdd/templates/<artifact>.md`
+- 自动识别：根据依赖链确定下一个缺失的 artifact
+
+**保留项**：
+- `openspec:continue-change` 的依赖链判断逻辑
+- 模板格式校验
+
+依赖链（与 schema.yaml 一致）：
 ```
-brainstorm.md → proposal.md → specs/ → tasks.md → plan.md
+brainstorm.md ──→ proposal.md ──→ specs/ ──→ tasks.md ──→ plan.md
   (可选)            (必需)     ↗   (必需)      (必需)
                             proposal.md
                                ↓
@@ -32,13 +41,19 @@ brainstorm.md → proposal.md → specs/ → tasks.md → plan.md
 可选 artifact：`brainstorm.md`、`design.md`、`plan.md`
 
 ### 后置逻辑（SDD 自有）
-1. 识别下一个缺失 artifact
+1. 确认生成的 artifact 符合 schema 约束
 2. 格式校验
 3. 输出下一步引导
 
+## 产物
+
+```
+openspec/changes/<change-name>/<next-artifact>.md
+```
+
 ## 完成后引导
 
-> 本 action 已完成。可安全 `/clear`。
+> 本 action 已完成，产物已持久化至 `openspec/changes/<change-name>/<next-artifact>.md`。可安全 `/clear`。
 >
 > 推荐下一步：
 > - 仍有缺失 → 继续 `sdd-continue`

@@ -42,7 +42,7 @@ sdd-skill/
 └── openspec/
     └── schemas/sdd/
         ├── schema.yaml           # Artifact definitions and dependency chain
-        ├── templates/            # 9 templates (brainstorm, proposal, spec, design, tasks, plan, review, project-context, project-rules)
+        ├── templates/            # 7 templates (brainstorm, proposal, spec, design, tasks, plan, review)
         └── tech-rules/           # Tech-stack rules (nodejs, go, python, java, rust, typescript)
 ```
 
@@ -51,9 +51,7 @@ sdd-skill/
 ```
 <project>/
 ├── openspec/
-│   ├── config.yaml               # Project config (schema: sdd)
-│   ├── project-context.md        # Project tech stack, architecture, module boundaries
-│   ├── project-rules.md          # AI boundaries and guidance for this project
+│   ├── config.yaml               # Project config (schema: sdd, context, rules, code patterns)
 │   ├── specs/                    # Global specs (merged after archiving)
 │   ├── changes/                  # Active changes
 │   └── schemas/sdd/              # SDD schema + templates (installed copy)
@@ -69,7 +67,7 @@ sdd-skill/
 5. **Decision Traceability**: proposal.md and design.md must explicitly reference brainstorm.md decisions.
 6. **Two-phase Code Review**: Phase 1 (spec compliance) must pass before Phase 2 (code quality).
 7. **Schema only constrains content, not orchestration**: Schema defines what artifacts should contain; SDD skills control the flow.
-8. **Tech Stack Boundaries**: `sdd-init` generates `project-rules.md` with language-specific constraints, giving AI clear boundaries and guidance for the target project.
+8. **Tech Stack Boundaries**: `sdd-init` generates `config.yaml` rules with language-specific constraints, giving AI clear boundaries and guidance for the target project.
 
 ## Context Hygiene
 
@@ -86,4 +84,4 @@ When modifying this skill set:
 - Each skill needs: SKILL.md + optional reviewer prompt
 - Schema and templates are the interface between Schema layer and Action layer
 - `config.yaml` default schema is `sdd`
-- Tech rules in `tech-rules/` define per-language constraints that `sdd-init` injects into `project-rules.md`
+- Tech rules in `tech-rules/` define per-language constraints that `sdd-init` injects into `config.yaml`

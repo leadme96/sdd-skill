@@ -19,12 +19,14 @@ user-invocable: true
 ### 核心执行（dispatch subagent）
 Dispatch `spec-reviewer` subagent 进行审查。
 
-**审查焦点**：
-- spec GIVEN/WHEN/THEN 场景是否可测试
-- tasks [spec:domain#scenario] 链接是否完整
-- proposal/design 的"决策追溯"节是否填写
-- 需求场景是否覆盖正常路径和边界路径
-- 是否存在歧义或遗漏
+**Override 项**：
+- 输出位置：`openspec/changes/<change-name>/reviews/spec-r<N>.md`
+- 审查轮次：最多 3 轮
+- 审查焦点：spec GIVEN/WHEN/THEN 场景可测试性、tasks spec 链接完整性、决策追溯完整性、路径覆盖
+
+**保留项**：
+- subagent 的自主审查逻辑
+- 审查报告的格式规范
 
 ### 后置逻辑（SDD 自有）
 1. 审查结果写入 `reviews/spec-r<N>.md`
