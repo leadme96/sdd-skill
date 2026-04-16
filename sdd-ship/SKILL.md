@@ -2,6 +2,7 @@
 name: sdd-ship
 description: Use to finalize a change — run final verification, sync specs to global store, archive the change, and finish the branch. Invokes OpenSpec and Superpowers skills.
 argument-hint: "[project-root] [change-name]"
+version: "1.0.0"
 user-invocable: true
 ---
 
@@ -40,6 +41,26 @@ user-invocable: true
 - 全局 specs 更新
 - 变更归档
 - 主分支更新
+
+
+## 错误处理
+
+### 常见错误
+
+| 错误 | 原因 | 恢复方法 |
+|------|------|----------|
+| change 目录不存在 | 未执行 sdd-propose | 先执行 `sdd-propose` 创建提案 |
+| artifact 缺失 | 前置步骤未完成 | 执行 `sdd-ff` 补全 artifact |
+
+### 状态检查
+
+```bash
+# 检查变更目录状态
+ls openspec/changes/<change-name>/
+
+# 检查 artifact 完整性
+cat openspec/changes/<change-name>/tasks.md | grep "\[x\]"
+```
 
 ## 完成后引导
 

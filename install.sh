@@ -10,7 +10,7 @@ set -euo pipefail
 # Target: project-level or user-level
 TARGET_DIR="${1:-project}"
 
-SKILL_NAMES="sdd-init sdd-doctor sdd-brainstorm sdd-propose sdd-continue sdd-ff sdd-plan sdd-code sdd-review-spec sdd-review-code sdd-verify sdd-ship"
+SKILL_NAMES="sdd-init sdd-doctor sdd-brainstorm sdd-propose sdd-continue sdd-ff sdd-plan sdd-apply sdd-review-spec sdd-review-code sdd-verify sdd-ship"
 
 if [ "$TARGET_DIR" = "project" ]; then
   DEST="$PWD/.claude/skills"

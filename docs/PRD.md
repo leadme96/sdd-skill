@@ -26,7 +26,7 @@ AI 辅助开发的两个痛点：
 - `sdd-continue` — 增量 artifact 生成
 - `sdd-ff` — 快进生成所有规划文档
 - `sdd-plan` — 实施计划 + plan-reviewer
-- `sdd-code` — TDD 实施
+- `sdd-apply` — TDD 实施
 - `sdd-review-spec` — spec 审查
 - `sdd-review-code` — 双阶段代码审查
 - `sdd-verify` — 全面验证

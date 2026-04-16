@@ -2,6 +2,7 @@
 name: sdd-init
 description: Use to initialize a new project for SDD workflow. Runs openspec init, detects project tech stack, scans existing code patterns and templates, and generates project-specific context and rules with code snippets.
 argument-hint: "[project-root]"
+version: "1.0.0"
 user-invocable: true
 ---
 
@@ -108,7 +109,7 @@ rules:
         ...
 ```
 
-这样后续 `sdd-code` 执行时，AI 可以参考这些片段保持项目既有风格。
+这样后续 `sdd-apply` 执行时，AI 可以参考这些片段保持项目既有风格。
 
 ## 产物
 
@@ -120,6 +121,26 @@ rules:
 │   ├── changes/                       # 活跃变更
 │   └── schemas/sdd/                   # SDD schema + 模板（安装副本）
 └── CLAUDE.md                          # 项目级 AI 工作流指导
+```
+
+
+## 错误处理
+
+### 常见错误
+
+| 错误 | 原因 | 恢复方法 |
+|------|------|----------|
+| change 目录不存在 | 未执行 sdd-propose | 先执行 `sdd-propose` 创建提案 |
+| artifact 缺失 | 前置步骤未完成 | 执行 `sdd-ff` 补全 artifact |
+
+### 状态检查
+
+```bash
+# 检查变更目录状态
+ls openspec/changes/<change-name>/
+
+# 检查 artifact 完整性
+cat openspec/changes/<change-name>/tasks.md | grep "\[x\]"
 ```
 
 ## 完成后引导

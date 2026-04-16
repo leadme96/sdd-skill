@@ -36,4 +36,4 @@
 ## 门禁
 
 - Passed → 进入 Phase 2（代码质量审查）
-- Failed → 停止，返回 `sdd-code` 补充实现
+- Failed → 停止，返回 `sdd-apply` 补充实现

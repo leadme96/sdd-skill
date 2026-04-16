@@ -2,6 +2,7 @@
 name: sdd-review-spec
 description: Use to review the quality and completeness of specs before implementation. Dispatches spec-reviewer subagent.
 argument-hint: "[project-root] [change-name]"
+version: "1.0.0"
 user-invocable: true
 ---
 
@@ -38,6 +39,26 @@ Dispatch `spec-reviewer` subagent 进行审查。
 ```
 openspec/changes/<change-name>/reviews/
 └── spec-r<N>.md
+```
+
+
+## 错误处理
+
+### 常见错误
+
+| 错误 | 原因 | 恢复方法 |
+|------|------|----------|
+| change 目录不存在 | 未执行 sdd-propose | 先执行 `sdd-propose` 创建提案 |
+| artifact 缺失 | 前置步骤未完成 | 执行 `sdd-ff` 补全 artifact |
+
+### 状态检查
+
+```bash
+# 检查变更目录状态
+ls openspec/changes/<change-name>/
+
+# 检查 artifact 完整性
+cat openspec/changes/<change-name>/tasks.md | grep "\[x\]"
 ```
 
 ## 完成后引导
