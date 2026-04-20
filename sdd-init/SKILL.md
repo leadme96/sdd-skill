@@ -29,7 +29,8 @@ user-invocable: true
    - 提取 `<!-- principles-version: X.Y -->` 标记
    - 如无标记，视为版本 0.0
    - 如检测版本 < 当前模板版本 (1.0)，提示用户：「发现新版本原则 (1.0 > X.Y)，是否更新？」
-   - 等待用户确认后继续
+   - 如检测版本 >= 当前模板版本，跳过更新提示
+   - 如用户拒绝更新，保留现有 CLAUDE.md，继续后续步骤
 
 ### 核心执行（invoke 底层 skill）
 Invoke `openspec:init` 执行项目初始化：
@@ -66,6 +67,11 @@ Invoke `openspec:init` 执行项目初始化：
 ## AI Behavior Principles
 
 > **强制但有 override**：用户可显式 `ignore <原则名>` 绕过。
+>
+> **Override 行为指导**：
+> - 当用户说「忽略所有原则」→ 停止输出所有自检问题
+> - 当用户说「忽略 <原则名>」→ 停止输出该原则的自检问题
+> - Override 仅在当前会话有效，不持久化
 
 ### 1. Think Before Coding
 **解决**：错误假设、隐藏困惑、缺少权衡
@@ -127,9 +133,23 @@ Invoke `openspec:init` 执行项目初始化：
 | 1 | Goal-Driven Execution | > Simplicity First |
 | 2 | Surgical Changes | > Simplicity First |
 
+**冲突决策指导**：
+- 当原则产生冲突时，按优先级决策
+- 必须在输出中声明决策理由，格式：「[原则A] 优先于 [原则B]，因为 [原因]」
+- 示例：「目标驱动优先于简洁优先，因为可验证性更重要」
+
 ## SDD Workflow
 
-（标准 SDD 工作流说明，引用 sdd-skill README.md）
+使用 SDD 工作流进行开发。详见 SDD 文档。
+
+**常用 action**：
+- `sdd-brainstorm` — 深度探索设计
+- `sdd-propose` — 创建变更提案
+- `sdd-ff` — 快进生成规划文档
+- `sdd-plan` — 细化实施计划
+- `sdd-apply` — TDD 实施
+- `sdd-review-code` — 代码审查
+- `sdd-ship` — 归档合并
 
 ## Action Checkpoints
 
@@ -224,17 +244,18 @@ rules:
 
 | 错误 | 原因 | 恢复方法 |
 |------|------|----------|
-| change 目录不存在 | 未执行 sdd-propose | 先执行 `sdd-propose` 创建提案 |
-| artifact 缺失 | 前置步骤未完成 | 执行 `sdd-ff` 补全 artifact |
+| openspec/ 已存在 | 项目已初始化 | 检查 `openspec/config.yaml` 是否完整 |
+| 无写权限 | 权限不足 | 检查目录权限或使用管理员权限 |
+| CLAUDE.md 已存在 | 项目已有配置 | 版本检测逻辑会提示是否更新 |
 
 ### 状态检查
 
 ```bash
-# 检查变更目录状态
-ls openspec/changes/<change-name>/
+# 检查初始化结果
+ls openspec/
 
-# 检查 artifact 完整性
-cat openspec/changes/<change-name>/tasks.md | grep "\[x\]"
+# 检查 CLAUDE.md 版本
+grep "principles-version" CLAUDE.md
 ```
 
 ## 完成后引导
