@@ -18,6 +18,7 @@ user-invocable: true
 4. 安装 SDD schema 和模板到项目
 5. 将 context 和 rules **内联写入 `openspec/config.yaml`**（不生成独立文件）
 6. 生成项目级 CLAUDE.md（包含 SDD 工作流说明）
+7. **注入 `skill_dispatch` 默认规则**（根据检测到的技术栈）
 
 ## 三段式结构
 
@@ -52,8 +53,10 @@ Invoke `openspec:init` 执行项目初始化：
 3. **生成项目 context** — 内联写入 `openspec/config.yaml` 的 `context:` 字段
 4. **生成项目 rules** — 内联写入 `openspec/config.yaml` 的 `rules:` 字段，注入检测到的代码模式和代码片段
 5. **安装 SDD schema** — 将 `openspec/schemas/sdd/` 复制到项目
-6. **生成 CLAUDE.md** — 项目级 AI 工作流指导，使用下方模板内容
-7. 输出初始化报告
+6. **注入 skill_dispatch 默认规则** — 读取 `skill-dispatch-defaults.yaml`，匹配技术栈，注入到 `config.yaml`（见下方规则）
+7. **生成 CLAUDE.md** — 项目级 AI 工作流指导，使用下方模板内容
+8. 输出初始化报告
+
 
 ## CLAUDE.md 模板内容
 
@@ -225,16 +228,67 @@ rules:
 
 这样后续 `sdd-apply` 执行时，AI 可以参考这些片段保持项目既有风格。
 
+## Skill Dispatch 注入规则
+
+### 默认规则来源
+
+全局默认规则存储于 `openspec/schemas/sdd/skill-dispatch-defaults.yaml`，包含多种技术栈的默认调度配置。
+
+### 注入流程
+
+1. **读取默认规则** — 从 `skill-dispatch-defaults.yaml` 读取 `defaults:` 数组
+2. **匹配技术栈** — 对每条规则，检查其 `trigger.tech_stack` 是否全部存在于项目检测到的技术栈中
+3. **phases 校验** — 跳过包含无效 `phases` 值的规则，记录警告
+4. **合并已有配置** — 如 `config.yaml` 已有 `skill_dispatch` 配置，保留用户配置，仅追加不重复的默认规则
+5. **注入规则** — 将匹配的规则追加到 `config.yaml` 的 `rules.skill_dispatch` 字段
+
+### 匹配算法
+
+```python
+def match_rule(rule, detected_tech_stack):
+    # 规则的 tech_stack 需全部存在于检测到的技术栈中
+    return all(ts in detected_tech_stack for ts in rule.trigger.tech_stack)
+```
+
+### 边界处理
+
+| 场景 | 处理方式 |
+|------|----------|
+| 无匹配规则 | `rules.skill_dispatch` 不创建或为空数组 |
+| 技术栈为空 | 跳过注入 |
+| 用户已有配置 | 保留用户配置，追加不重复的默认规则 |
+| phases 含无效值 | 跳过该规则，记录警告 |
+| config.yaml 解析错误 | 报错并提示用户修复，不覆盖现有配置 |
+
+### 去重逻辑
+
+按 `trigger.tech_stack` + `skill` 组合判断重复：
+- 如用户已有 `tech_stack: [python, fastapi], skill: "xxx"` 的规则，则不追加相同组合的默认规则
+
+### 有效 phases 枚举
+
+- `brainstorm` — 设计探索阶段
+- `propose` — 提案固化阶段
+- `plan` — 实施计划阶段
+- `apply` — TDD 实现阶段
+- `review` — 代码审查阶段
+- `verify` — 综合验证阶段
+- `ship` — 归档合并阶段
+
 ## 产物
 
 ```
 <project-root>/
 ├── openspec/
-│   ├── config.yaml                    # schema: sdd + context + rules（含代码模式参考）
+│   ├── config.yaml                    # schema: sdd + context + rules（含代码模式 + skill_dispatch）
 │   ├── specs/                         # 全局 spec
 │   ├── changes/                       # 活跃变更
 │   └── schemas/sdd/                   # SDD schema + 模板（安装副本）
 └── CLAUDE.md                          # 项目级 AI 工作流指导
+
+# 全局默认规则（安装在 sdd-skill 中）
+sdd-skill/openspec/schemas/sdd/
+└── skill-dispatch-defaults.yaml       # 全局默认调度规则
 ```
 
 
@@ -261,7 +315,7 @@ grep "principles-version" CLAUDE.md
 ## 完成后引导
 
 > 本 action 已完成，SDD 工作流已初始化至 `<project-root>/openspec/`。
-> context 和 rules（含 N 种代码模式）已写入 `config.yaml`。可安全 `/clear`。
+> context 和 rules（含 N 种代码模式 + skill_dispatch 规则）已写入 `config.yaml`。可安全 `/clear`。
 >
 > 推荐下一步：
 > - 需求明确 → `sdd-propose` 创建第一个变更提案

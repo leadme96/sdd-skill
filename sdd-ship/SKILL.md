@@ -16,6 +16,10 @@ user-invocable: true
 1. 定位 change 目录
 2. 执行最终验证（内置验证，不依赖 sdd-verify 已执行）
 3. 确认验证通过
+4. **Skill Dispatch 调度**（如有配置）：
+   - 读取 `openspec/config.yaml` 中的 `rules.skill_dispatch`
+   - 匹配当前上下文（action=ship + 项目技术栈 + 变更文件路径）
+   - 匹配成功则调用指定的 skill
 
 ### 核心执行（invoke 底层 skill，顺序执行三步）
 按顺序 invoke 三个底层 skills：

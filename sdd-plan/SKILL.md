@@ -16,6 +16,10 @@ user-invocable: true
 1. 定位 change 目录
 2. 读取 `tasks.md`、`specs/`、`design.md`（如有）
 3. 确认 `tasks.md` 已存在（必需前置）
+4. **Skill Dispatch 调度**（如有配置）：
+   - 读取 `openspec/config.yaml` 中的 `rules.skill_dispatch`
+   - 匹配当前上下文（action=plan + 项目技术栈 + 变更文件路径）
+   - 匹配成功则调用指定的 skill
 
 ### 核心执行（invoke 底层 skill）
 Invoke `superpowers:writing-plans` 生成 `plan.md`。

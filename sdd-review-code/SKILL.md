@@ -55,6 +55,10 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" review --base <base-bra
 2. 定位 change 目录
 3. 读取 `specs/`、`tasks.md`
 4. 确认待审查的代码变更范围
+5. **Skill Dispatch 调度**（如有配置）：
+   - 读取 `openspec/config.yaml` 中的 `rules.skill_dispatch`
+   - 匹配当前上下文（action=review + 项目技术栈 + 变更文件路径）
+   - 匹配成功则调用指定的 skill
 
 ### 核心执行
 

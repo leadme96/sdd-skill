@@ -16,6 +16,10 @@ user-invocable: true
 1. 定位 change 目录：`openspec/changes/<change-name>/`
 2. 读取项目上下文（README、关键源码、已有 artifact）
 3. 检查前置条件：change 目录是否已存在
+4. **Skill Dispatch 调度**（如有配置）：
+   - 读取 `openspec/config.yaml` 中的 `rules.skill_dispatch`
+   - 匹配当前上下文（action=brainstorm + 项目技术栈 + 变更文件路径）
+   - 匹配成功则调用指定的 skill
 
 ### 核心执行（invoke 底层 skill）
 Invoke `superpowers:brainstorming` 进行苏格拉底式探索。

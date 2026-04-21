@@ -16,6 +16,10 @@ user-invocable: true
 1. 定位 change 目录：`openspec/changes/<change-name>/`
 2. 读取 `brainstorm.md`（如有）
 3. 检查 proposal.md 是否已存在
+4. **Skill Dispatch 调度**（如有配置）：
+   - 读取 `openspec/config.yaml` 中的 `rules.skill_dispatch`
+   - 匹配当前上下文（action=propose + 项目技术栈 + 变更文件路径）
+   - 匹配成功则调用指定的 skill
 
 ### 核心执行（invoke 底层 skill）
 Invoke `openspec:continue-change` 生成 `proposal.md`。

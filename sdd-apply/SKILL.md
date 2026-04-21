@@ -96,6 +96,10 @@ sdd-apply --team <project-root> <change-name>
 2. 定位 change 目录
 3. 读取 `plan.md` 定位当前批次（或按 `tasks.md` 批次划分）
 4. 更新 `tasks.md` 中的批次状态
+5. **Skill Dispatch 调度**（如有配置）：
+   - 读取 `openspec/config.yaml` 中的 `rules.skill_dispatch`
+   - 匹配当前上下文（action=apply + 项目技术栈 + 变更文件路径）
+   - 匹配成功则调用指定的 skill
 
 ### 核心执行
 
@@ -172,6 +176,53 @@ sdd-apply --team <project-root> <change-name>
 - 目标项目中的代码变更
 - 配套测试
 - Git commits（在 `sdd/<change-name>` 分支上）
+
+## Skill Dispatch 匹配规则
+
+各 SDD action 在前置逻辑中会检查 `openspec/config.yaml` 的 `rules.skill_dispatch` 配置，匹配当前上下文并调用指定 skill。
+
+### 匹配条件
+
+| 条件 | 说明 |
+|------|------|
+| `trigger.tech_stack` | 规则中所有值需存在于项目检测到的技术栈中（AND 逻辑） |
+| `trigger.path_pattern` | 如指定，需至少一个变更文件匹配该 glob 模式 |
+| `phases` | 当前 action 名称需在规则的 phases 列表中 |
+| `trigger.tags` | 当前版本不参与匹配（保留扩展位） |
+
+### 匹配算法
+
+```python
+def match_rule(rule, context):
+    # tech_stack: 所有指定值必须都存在于检测到的技术栈中
+    if not all(ts in context.tech_stack for ts in rule.trigger.tech_stack):
+        return False
+
+    # phases: 当前 action 必须在列表中
+    if context.action not in rule.phases:
+        return False
+
+    # path_pattern: 如指定，需至少一个变更文件匹配
+    if rule.trigger.path_pattern:
+        if not any(match_glob(rule.trigger.path_pattern, f) for f in context.changed_files):
+            return False
+
+    return True
+```
+
+### 多规则调度
+
+- 多条规则匹配时，按 `config.yaml` 中定义顺序依次调度
+- 单条规则失败不中断后续规则执行
+- 调度是增强型，不替代 SDD 内置流程
+
+### 错误处理
+
+| 场景 | 处理方式 |
+|------|----------|
+| `phases: []` | 跳过该规则 |
+| 指定的 skill 不存在 | 记录警告，跳过该规则 |
+| skill 调用失败 | 记录错误，继续执行底层 skill |
 
 
 ## 错误处理
