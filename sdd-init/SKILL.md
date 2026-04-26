@@ -1,6 +1,6 @@
 ---
 name: sdd-init
-description: Use to initialize a new project for SDD workflow. Runs openspec init, detects project tech stack, scans existing code patterns and templates, and generates project-specific context and rules with code snippets.
+description: 一站式项目初始化入口，集成 agents CLI + OpenSpec + Superpowers，生成 AGENTS.md + CLAUDE.md + openspec/ 结构。
 argument-hint: "[project-root]"
 version: "1.0.0"
 user-invocable: true
