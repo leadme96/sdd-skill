@@ -1,6 +1,6 @@
 ---
 name: sdd-init
-description: 一站式项目初始化入口，集成 agents CLI + OpenSpec + Superpowers，生成 AGENTS.md + CLAUDE.md + openspec/ 结构。
+description: 一站式项目初始化入口，集成 agents CLI + OpenSpec，生成 AGENTS.md + CLAUDE.md + openspec/ 结构。
 argument-hint: "[project-root]"
 version: "1.0.0"
 user-invocable: true
@@ -15,9 +15,8 @@ user-invocable: true
 一站式项目初始化入口，集成：
 1. **agents CLI** — 生成 AGENTS.md（AI 行为规范）
 2. **OpenSpec CLI** — 建立 openspec/（Spec 管理）
-3. **Superpowers skills** — 安装 TDD/Debugging/Review
-4. **技术栈检测** — 注入项目特定规则
-5. **工具适配层** — 生成 Claude Code/Codex 配置文件
+3. **技术栈检测** — 注入项目特定规则
+4. **工具适配层** — 生成 Claude Code/Codex 配置文件
 
 ## 三段式结构
 
@@ -49,9 +48,6 @@ AGENTS_EXISTS=$([ -d ".agents" ] && echo "✓" || echo " ")
 
 # 检测 openspec/
 OPENSPEC_EXISTS=$([ -d "openspec" ] && echo "✓" || echo " ")
-
-# 检测 superpowers skills
-SUPERPOWERS_EXISTS=$([ -L "$HOME/.claude/skills/superpowers-tdd" ] && echo "✓" || echo " ")
 ```
 
 #### 3. 环境检测
@@ -71,7 +67,6 @@ IS_CODEX=$([ -n "$CODEX" ] || [ -d ".codex" ] && echo "true" || echo "false")
 
   [${OPENSPEC_EXISTS}] openspec/ 目录
   [${AGENTS_EXISTS}] .agents/ 目录
-  [${SUPERPOWERS_EXISTS}] superpowers skills
 
 是否初始化缺失组件？
 
@@ -94,7 +89,6 @@ IS_CODEX=$([ -n "$CODEX" ] || [ -d ".codex" ] && echo "true" || echo "false")
 
   [x] .agents/ 目录（agents CLI 管理，生成 AGENTS.md）
   [x] openspec/ 目录（Spec 管理）
-  [x] superpowers skills（TDD/Debugging/Review 等）
 
 空格选择/取消，回车确认，q 退出
 ```
@@ -126,25 +120,6 @@ cd "${PROJECT_ROOT:-.}" && openspec init --schema sdd
 - `openspec/schemas/sdd/`
 
 **Override**：强制 `schema: sdd`（非默认值）
-
-#### 3. Superpowers 安装（如用户选择）
-
-```bash
-SUPERPOWERS_SOURCE="$HOME/.claude/skills-source/superpowers"
-
-# 克隆（如果未存在）
-if [ ! -d "$SUPERPOWERS_SOURCE" ]; then
-  git clone https://github.com/nickfla1/superpowers.git "$SUPERPOWERS_SOURCE"
-fi
-
-# 创建链接
-mkdir -p "$HOME/.claude/skills"
-for skill in tdd debugging review; do
-  ln -sf "$SUPERPOWERS_SOURCE/skills/$skill" "$HOME/.claude/skills/superpowers-$skill"
-done
-```
-
-**产物**：`~/.claude/skills/superpowers-*` 符号链接
 
 ### 工具适配层生成
 
@@ -329,11 +304,6 @@ SDD 初始化完成
   ✓ openspec/project.md
   ✓ openspec/schemas/sdd/
 
-已安装的 skills：
-  ✓ superpowers-tdd
-  ✓ superpowers-debugging
-  ✓ superpowers-review
-
 下一步：
   - 创建变更提案：/sdd-propose
   - 深度探索设计：/sdd-brainstorm
@@ -465,12 +435,6 @@ def match_rule(rule, detected_tech_stack):
     ├── specs/                         # 全局 spec
     ├── changes/                       # 活跃变更
     └── schemas/sdd/                   # SDD schema + 模板（安装副本）
-
-# 全局 skills（安装在 ~/.claude/skills/）
-~/.claude/skills/
-├── superpowers-tdd → ~/.claude/skills-source/superpowers/skills/tdd
-├── superpowers-debugging → ~/.claude/skills-source/superpowers/skills/debugging
-└── superpowers-review → ~/.claude/skills-source/superpowers/skills/review
 ```
 
 
