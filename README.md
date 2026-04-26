@@ -69,7 +69,7 @@ SDD skill 只做编排，核心工作委托给底层 skill：
 
 | Action | 委托给 | 何时使用 |
 |--------|--------|----------|
-| `sdd-init` | `openspec:init` | 初始化项目 SDD 工作流，检测技术栈，生成 AI 边界 |
+| `sdd-init` | `agents init` + `openspec:init` | 一站式项目初始化，集成 agents CLI + OpenSpec + Superpowers |
 | `sdd-doctor` | 无 | 诊断环境，检查 skill 完整性和变更状态 |
 | `sdd-brainstorm` | `superpowers:brainstorming` | 想深度探索设计 |
 | `sdd-propose` | `openspec:continue-change` | 想固化提案 |
@@ -87,7 +87,7 @@ SDD skill 只做编排，核心工作委托给底层 skill：
 ### 大特性标准路径
 
 ```bash
-sdd-init           → openspec/ + CLAUDE.md
+sdd-init           → .agents/ + AGENTS.md + openspec/ + CLAUDE.md + superpowers skills
 /clear
 sdd-brainstorm   → brainstorm.md
 /clear
@@ -160,35 +160,38 @@ sdd-apply --team <project-root> <change-name>
 ## 目录结构
 
 ```
-openspec/
-├── config.yaml                     # 项目配置（默认 schema: sdd）
-├── specs/                          # 全局 spec（归档后合并至此）
-├── schemas/
-│   └── sdd/                        # SDD schema + 模板
-│       ├── schema.yaml             # artifact 定义、依赖链、内容约束
-│       └── templates/
-│           ├── brainstorm.md
-│           ├── proposal.md
-│           ├── spec.md
-│           ├── design.md
-│           ├── tasks.md
-│           ├── plan.md
-│           └── review.md
-└── changes/
-    ├── <change-name>/              # 活跃变更
-    │   ├── brainstorm.md
-    │   ├── proposal.md
-    │   ├── specs/<capability>/spec.md
-    │   ├── design.md
-    │   ├── tasks.md
-    │   ├── plan.md
-    │   └── reviews/
-    │       ├── brainstorm-r1.md
-    │       ├── spec-r1.md
-    │       ├── plan-r1.md
-    │       ├── code-batch1-r1.md
-    │       └── code-final-r1.md
-    └── archive/YYYY-MM-DD-<name>/  # 归档变更
+<project-root>/
+├── .agents/                        # agents CLI 管理
+│   └── agents.json
+├── AGENTS.md                       # Karpathy 4 原则（通用规范）
+├── CLAUDE.md                       # "@AGENTS.md" 单行引用（Claude Code）
+├── .codex/                         # 仅 Codex 环境
+│   └── AGENTS.md                   # "@../AGENTS.md"
+└── openspec/
+    ├── config.yaml                 # 精简：引用 project.md
+    ├── project.md                  # 详细：项目信息 + SDD 工作流
+    ├── specs/                      # 全局 spec（归档后合并至此）
+    ├── schemas/
+    │   └── sdd/                    # SDD schema + 模板
+    │       ├── schema.yaml         # artifact 定义、依赖链
+    │       └── templates/
+    │           ├── brainstorm.md
+    │           ├── proposal.md
+    │           ├── spec.md
+    │           ├── design.md
+    │           ├── tasks.md
+    │           ├── plan.md
+    │           └── review.md
+    └── changes/
+        ├── <change-name>/          # 活跃变更
+        │   ├── brainstorm.md
+        │   ├── proposal.md
+        │   ├── specs/<capability>/spec.md
+        │   ├── design.md
+        │   ├── tasks.md
+        │   ├── plan.md
+        │   └── reviews/
+        └── archive/YYYY-MM-DD-<name>/  # 归档变更
 ```
 
 ## 三层架构

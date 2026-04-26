@@ -12,50 +12,333 @@ user-invocable: true
 
 ## 职责
 
-1. 执行 `openspec init` 建立项目规范骨架
-2. 检测项目技术栈并生成对应的 AI 边界与指引
-3. **扫描项目既有代码模式，提取统一模板和典型代码片段**
-4. 安装 SDD schema 和模板到项目
-5. 将 context 和 rules **内联写入 `openspec/config.yaml`**（不生成独立文件）
-6. 生成项目级 CLAUDE.md（包含 SDD 工作流说明）
-7. **注入 `skill_dispatch` 默认规则**（根据检测到的技术栈）
+一站式项目初始化入口，集成：
+1. **agents CLI** — 生成 AGENTS.md（AI 行为规范）
+2. **OpenSpec CLI** — 建立 openspec/（Spec 管理）
+3. **Superpowers skills** — 安装 TDD/Debugging/Review
+4. **技术栈检测** — 注入项目特定规则
+5. **工具适配层** — 生成 Claude Code/Codex 配置文件
 
 ## 三段式结构
 
 ### 前置逻辑（SDD 自有）
-1. 读取项目根目录，识别项目类型
-2. 检查 `openspec/` 是否已存在
-3. 读取项目 README、配置文件、依赖声明文件
-4. **版本检测** — 如项目已存在 `CLAUDE.md`：
-   - 提取 `<!-- principles-version: X.Y -->` 标记
-   - 如无标记，视为版本 0.0
-   - 如检测版本 < 当前模板版本 (1.0)，提示用户：「发现新版本原则 (1.0 > X.Y)，是否更新？」
-   - 如检测版本 >= 当前模板版本，跳过更新提示
-   - 如用户拒绝更新，保留现有 CLAUDE.md，继续后续步骤
 
-### 核心执行（invoke 底层 skill）
-Invoke `openspec:init` 执行项目初始化：
-- 创建 `openspec/` 目录结构
-- 生成 `openspec/config.yaml`（设置 `schema: sdd`）
-- 创建 `openspec/changes/` 和 `openspec/specs/` 目录
+#### 1. CLI 可用性检测
 
-**Override 项**：
-- schema 设置：强制 `schema: sdd`（非默认值）
-- config.yaml 格式：将 context 和 rules 内联写入，不生成独立文件
+```bash
+# 检测 agents CLI
+if ! command -v agents &> /dev/null; then
+  echo "错误：agents CLI 未安装"
+  echo "安装命令：npm install -g @agents-dev/cli"
+  exit 1
+fi
 
-**保留项**：
-- `openspec:init` 的基础目录创建逻辑
-- 默认 schema/模板系统
+# 检测 openspec CLI
+if ! command -v openspec &> /dev/null; then
+  echo "错误：openspec CLI 未安装"
+  echo "安装命令：npm install -g openspec"
+  exit 1
+fi
+```
+
+#### 2. 组件状态检测
+
+```bash
+# 检测 .agents/
+AGENTS_EXISTS=$([ -d ".agents" ] && echo "✓" || echo " ")
+
+# 检测 openspec/
+OPENSPEC_EXISTS=$([ -d "openspec" ] && echo "✓" || echo " ")
+
+# 检测 superpowers skills
+SUPERPOWERS_EXISTS=$([ -L "$HOME/.claude/skills/superpowers-tdd" ] && echo "✓" || echo " ")
+```
+
+#### 3. 环境检测
+
+```bash
+# 检测 Claude Code
+IS_CLAUDE=$([ -n "$CLAUDE_CODE" ] || [ "$TERM_PROGRAM" = "claude-code" ] && echo "true" || echo "false")
+
+# 检测 Codex
+IS_CODEX=$([ -n "$CODEX" ] || [ -d ".codex" ] && echo "true" || echo "false")
+```
+
+#### 4. 显示组件状态
+
+```
+检测到以下组件状态：
+
+  [${OPENSPEC_EXISTS}] openspec/ 目录
+  [${AGENTS_EXISTS}] .agents/ 目录
+  [${SUPERPOWERS_EXISTS}] superpowers skills
+
+是否初始化缺失组件？
+
+  [y] 全部初始化
+  [s] 选择性初始化
+  [q] 退出
+```
+
+#### 5. 版本检测（如 CLAUDE.md 已存在）
+
+- 提取 `<!-- principles-version: X.Y -->` 标记
+- 如无标记，视为版本 0.0
+- 如检测版本 < 当前模板版本 (1.0)，提示用户：「发现新版本原则 (1.0 > X.Y)，是否更新？」
+- 如用户拒绝更新，保留现有 CLAUDE.md，继续后续步骤
+
+### 交互式确认（如用户选择 [s]）
+
+```
+选择要初始化的组件：
+
+  [x] .agents/ 目录（agents CLI 管理，生成 AGENTS.md）
+  [x] openspec/ 目录（Spec 管理）
+  [x] superpowers skills（TDD/Debugging/Review 等）
+
+空格选择/取消，回车确认，q 退出
+```
+
+### 核心执行
+
+#### 1. agents init（如用户选择）
+
+```bash
+cd "${PROJECT_ROOT:-.}" && agents init
+```
+
+**产物**：
+- `.agents/agents.json`
+- `AGENTS.md`（如不存在）
+
+**注意**：agents init 为交互式命令，需用户输入配置。
+
+#### 2. openspec init（如用户选择）
+
+```bash
+cd "${PROJECT_ROOT:-.}" && openspec init --schema sdd
+```
+
+**产物**：
+- `openspec/config.yaml`
+- `openspec/specs/`
+- `openspec/changes/`
+- `openspec/schemas/sdd/`
+
+**Override**：强制 `schema: sdd`（非默认值）
+
+#### 3. Superpowers 安装（如用户选择）
+
+```bash
+SUPERPOWERS_SOURCE="$HOME/.claude/skills-source/superpowers"
+
+# 克隆（如果未存在）
+if [ ! -d "$SUPERPOWERS_SOURCE" ]; then
+  git clone https://github.com/nickfla1/superpowers.git "$SUPERPOWERS_SOURCE"
+fi
+
+# 创建链接
+mkdir -p "$HOME/.claude/skills"
+for skill in tdd debugging review; do
+  ln -sf "$SUPERPOWERS_SOURCE/skills/$skill" "$HOME/.claude/skills/superpowers-$skill"
+done
+```
+
+**产物**：`~/.claude/skills/superpowers-*` 符号链接
+
+### 工具适配层生成
+
+#### Claude Code 环境
+
+```bash
+if [ "$IS_CLAUDE" = "true" ]; then
+  echo "@AGENTS.md" > CLAUDE.md
+  echo "已生成 CLAUDE.md → @AGENTS.md"
+fi
+```
+
+#### Codex 环境
+
+```bash
+if [ "$IS_CODEX" = "true" ]; then
+  mkdir -p .codex
+  echo "@../AGENTS.md" > .codex/AGENTS.md
+  echo "已生成 .codex/AGENTS.md → @../AGENTS.md"
+fi
+```
+
+### AGENTS.md 内嵌模板
+
+如 agents init 未生成 AGENTS.md，或用户选择覆盖，使用以下内嵌模板：
+
+```markdown
+<!-- principles-version: 1.0 -->
+
+# AI Behavior Principles
+
+> **强制但有 override**：用户可显式 `ignore <原则名>` 绕过。
+
+## 1. Think Before Coding
+**解决**：错误假设、隐藏困惑、缺少权衡
+
+**行为要求**：
+- 遇到不确定点时，**必须提问确认**，而非假设
+- 输出 `[Thinking...]` 标记，显式声明思考过程
+- 如存在多种理解，呈现所有选项让用户选择
+- 如发现更简单的方案，主动提出
+
+**自检问题**：
+- 我是否在不确定时做了假设？
+- 我是否呈现了所有可能的解释？
+
+## 2. Simplicity First
+**解决**：过度复杂、臃肿抽象
+
+**行为要求**：
+- 只实现被请求的功能，不添加「未来可能需要」的特性
+- 单次使用的代码不创建抽象层
+- 不添加未被请求的「灵活性」或「可配置性」
+- 不为不可能发生的场景写错误处理
+
+**自检问题**：
+- 200 行能否变成 50 行？
+- 资深工程师会说这是过度复杂吗？
+
+## 3. Surgical Changes
+**解决**：无关编辑、触碰不应碰的代码
+
+**行为要求**：
+- 只修改与任务直接相关的代码
+- 不「顺便」改进相邻代码、注释或格式
+- 不重构没坏的代码
+- 匹配现有代码风格，即使你不会这样写
+- 说明变更范围和关键修改点
+
+**自检问题**：
+- 每一行变更是否都能追溯到用户的请求？
+
+## 4. Goal-Driven Execution
+**解决**：通过测试优先、可验证的成功标准
+
+**行为要求**：
+- 将命令式任务转换为可验证目标
+- 多步骤任务输出简要计划 + 验证检查点
+- 每个变更输出验收标准，完成后确认
+
+**任务转换示例**：
+| 命令 | 转换为 |
+|------|--------|
+| "添加验证" | "为无效输入写测试，然后让测试通过" |
+| "修复 bug" | "写一个能复现它的测试，然后让测试通过" |
+
+## 原则优先级
+
+| 优先级 | 原则 | 覆盖关系 |
+|--------|------|----------|
+| 1 | Goal-Driven Execution | > Simplicity First |
+| 2 | Surgical Changes | > Simplicity First |
+
+**冲突决策指导**：
+- 当原则产生冲突时，按优先级决策
+- 必须在输出中声明决策理由
+- 示例：「目标驱动优先于简洁优先，因为可验证性更重要」
+```
 
 ### 后置逻辑（SDD 自有）
-1. **技术栈检测** — 扫描项目，识别技术栈和框架
-2. **代码模式扫描** — 提取项目统一的代码模板和典型片段（见下方规则）
-3. **生成项目 context** — 内联写入 `openspec/config.yaml` 的 `context:` 字段
-4. **生成项目 rules** — 内联写入 `openspec/config.yaml` 的 `rules:` 字段，注入检测到的代码模式和代码片段
-5. **安装 SDD schema** — 将 `openspec/schemas/sdd/` 复制到项目
-6. **注入 skill_dispatch 默认规则** — 读取 `skill-dispatch-defaults.yaml`，匹配技术栈，注入到 `config.yaml`（见下方规则）
-7. **生成 CLAUDE.md** — 项目级 AI 工作流指导，使用下方模板内容
-8. 输出初始化报告
+
+#### 1. config.yaml 修正
+
+确保 `openspec/config.yaml` 包含：
+
+```yaml
+schema: sdd
+project_context: openspec/project.md
+
+rules:
+  skill_dispatch: []
+```
+
+如字段缺失，追加写入。
+
+#### 2. project.md 生成
+
+创建 `openspec/project.md`（如不存在）：
+
+```markdown
+# Project Context
+
+## 项目背景
+
+<!-- 项目概述、业务域、核心目标 -->
+
+## 业务知识
+
+<!-- 领域术语、业务规则、关键概念 -->
+
+## 团队约定
+
+<!-- 编码规范、提交约定、分支策略 -->
+
+## 技术栈
+
+<!-- 由 sdd-init 根据检测结果注入 -->
+
+## SDD Workflow
+
+本项目使用 SDD 工作流。
+
+**常用命令**：
+- `/sdd-brainstorm` — 深度探索设计
+- `/sdd-propose` — 创建变更提案
+- `/sdd-ff` — 快进生成规划文档
+- `/sdd-plan` — 细化实施计划
+- `/sdd-apply` — TDD 实施
+- `/sdd-review-code` — 代码审查
+- `/sdd-ship` — 归档合并
+
+## Action Checkpoints
+
+| Action | 相关原则 | 检查点 |
+|--------|----------|--------|
+| sdd-apply | Goal-Driven | 输出验收标准 |
+| sdd-apply | Surgical | 说明变更范围 |
+| sdd-brainstorm | Think Before | 显式提问确认 |
+| sdd-plan | Think Before | 输出假设列表 |
+| sdd-review-code | Simplicity | 检查过度复杂 |
+| sdd-review-code | Surgical | 检查变更边界 |
+```
+
+#### 3. 技术栈检测注入
+
+复用现有技术栈检测逻辑（见下方 `## 技术栈检测规则`）：
+- 扫描项目文件识别技术栈
+- 读取对应的 `openspec/schemas/sdd/tech-rules/<stack>.md`
+- 注入到 `openspec/project.md` 的 `## 技术栈` 节
+
+#### 4. 初始化报告输出
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SDD 初始化完成
+
+生成的文件：
+  ✓ .agents/agents.json
+  ✓ AGENTS.md
+  ✓ CLAUDE.md → @AGENTS.md
+  ✓ openspec/config.yaml
+  ✓ openspec/project.md
+  ✓ openspec/schemas/sdd/
+
+已安装的 skills：
+  ✓ superpowers-tdd
+  ✓ superpowers-debugging
+  ✓ superpowers-review
+
+下一步：
+  - 创建变更提案：/sdd-propose
+  - 深度探索设计：/sdd-brainstorm
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
 
 
 ## CLAUDE.md 模板内容
@@ -279,16 +562,24 @@ def match_rule(rule, detected_tech_stack):
 
 ```
 <project-root>/
-├── openspec/
-│   ├── config.yaml                    # schema: sdd + context + rules（含代码模式 + skill_dispatch）
-│   ├── specs/                         # 全局 spec
-│   ├── changes/                       # 活跃变更
-│   └── schemas/sdd/                   # SDD schema + 模板（安装副本）
-└── CLAUDE.md                          # 项目级 AI 工作流指导
+├── .agents/                           # agents CLI 管理
+│   └── agents.json
+├── AGENTS.md                          # Karpathy 4 原则（通用规范）
+├── CLAUDE.md                          # "@AGENTS.md" 单行引用（Claude Code）
+├── .codex/                            # 仅 Codex 环境
+│   └── AGENTS.md                      # "@../AGENTS.md"
+└── openspec/
+    ├── config.yaml                    # 精简：引用 project.md
+    ├── project.md                     # 详细：项目信息 + SDD 工作流
+    ├── specs/                         # 全局 spec
+    ├── changes/                       # 活跃变更
+    └── schemas/sdd/                   # SDD schema + 模板（安装副本）
 
-# 全局默认规则（安装在 sdd-skill 中）
-sdd-skill/openspec/schemas/sdd/
-└── skill-dispatch-defaults.yaml       # 全局默认调度规则
+# 全局 skills（安装在 ~/.claude/skills/）
+~/.claude/skills/
+├── superpowers-tdd → ~/.claude/skills-source/superpowers/skills/tdd
+├── superpowers-debugging → ~/.claude/skills-source/superpowers/skills/debugging
+└── superpowers-review → ~/.claude/skills-source/superpowers/skills/review
 ```
 
 
@@ -314,10 +605,9 @@ grep "principles-version" CLAUDE.md
 
 ## 完成后引导
 
-> 本 action 已完成，SDD 工作流已初始化至 `<project-root>/openspec/`。
-> context 和 rules（含 N 种代码模式 + skill_dispatch 规则）已写入 `config.yaml`。可安全 `/clear`。
+> 本 action 已完成，SDD 工作流已初始化至 `<project-root>/`。
+> 已生成 AGENTS.md + CLAUDE.md + openspec/ 结构。可安全 `/clear`。
 >
 > 推荐下一步：
-> - 需求明确 → `sdd-propose` 创建第一个变更提案
-> - 需探索设计 → `sdd-brainstorm` 深度探索
-> - 需求充分 → `sdd-ff` 快进生成所有规划文档
+> - 创建变更提案：`/sdd-propose`
+> - 深度探索设计：`/sdd-brainstorm`
