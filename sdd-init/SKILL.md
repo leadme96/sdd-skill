@@ -1,8 +1,8 @@
 ---
 name: sdd-init
-description: 一站式项目初始化入口，集成 agents CLI + OpenSpec，生成 AGENTS.md + CLAUDE.md + openspec/ 结构。
+description: 一站式项目初始化入口，集成 agents CLI + OpenSpec，生成 AGENTS.md + CLAUDE.md + openspec/ 结构。支持 Monorepo 和分层架构的分层 AGENTS.md 生成。
 argument-hint: "[project-root]"
-version: "1.0.0"
+version: "1.1.0"
 user-invocable: true
 ---
 
@@ -82,6 +82,75 @@ IS_CODEX=$([ -n "$CODEX" ] || [ -d ".codex" ] && echo "true" || echo "false")
 - 如检测版本 < 当前模板版本 (1.0)，提示用户：「发现新版本原则 (1.0 > X.Y)，是否更新？」
 - 如用户拒绝更新，保留现有 CLAUDE.md，继续后续步骤
 
+#### 6. 分层结构检测
+
+检测 Monorepo 前后端分离和单体应用分层架构：
+
+```bash
+# Monorepo 检测
+MONOREPO_FRONTEND=$([ -d "frontend" ] && [ -f "frontend/package.json" ] && echo "frontend" || echo "")
+MONOREPO_BACKEND=""
+if [ -d "backend" ]; then
+  if [ -f "backend/go.mod" ] || [ -f "backend/package.json" ] || [ -f "backend/pyproject.toml" ]; then
+    MONOREPO_BACKEND="backend"
+  fi
+fi
+
+# 分层架构检测
+LAYER_HANDLER=$([ -d "handler" ] || [ -d "controllers" ] || [ -d "internal/handler" ] && echo "handler" || echo "")
+LAYER_SERVICE=$([ -d "service" ] || [ -d "services" ] || [ -d "internal/service" ] && echo "service" || echo "")
+LAYER_REPOSITORY=""
+if [ -d "repository" ] || [ -d "repositories" ] || [ -d "dao" ] || [ -d "internal/repository" ]; then
+  LAYER_REPOSITORY="repository"
+fi
+
+# 汇总检测结果
+DETECTED_LAYERS=()
+[ -n "$MONOREPO_FRONTEND" ] && DETECTED_LAYERS+=("$MONOREPO_FRONTEND")
+[ -n "$MONOREPO_BACKEND" ] && DETECTED_LAYERS+=("$MONOREPO_BACKEND")
+[ -n "$LAYER_HANDLER" ] && DETECTED_LAYERS+=("$LAYER_HANDLER")
+[ -n "$LAYER_SERVICE" ] && DETECTED_LAYERS+=("$LAYER_SERVICE")
+[ -n "$LAYER_REPOSITORY" ] && DETECTED_LAYERS+=("$LAYER_REPOSITORY")
+```
+
+#### 7. 分层 AGENTS.md 交互式确认
+
+如检测到分层结构，显示交互式提示：
+
+```
+检测到以下分层结构：
+
+  [✓] frontend/ 目录（React 项目）
+  [✓] backend/ 目录（Go 项目）
+  [✓] handler/ 目录
+  [✓] service/ 目录
+  [✓] repository/ 目录
+
+是否生成分层 AGENTS.md？建议生成以规范 AI 在各层的代码风格。
+
+  [y] 全部生成
+  [s] 选择性生成（交互选择）
+  [q] 跳过
+
+请选择: _
+```
+
+用户选择 `[s]` 时显示逐项选择：
+
+```
+选择要生成的分层 AGENTS.md：
+
+  [x] frontend/AGENTS.md（组件 + API + 状态管理）
+  [x] backend/AGENTS.md（Handler + Service + Repository）
+  [ ] handler/AGENTS.md（Handler 层规则）
+  [ ] service/AGENTS.md（Service 层规则）
+  [ ] repository/AGENTS.md（Repository 层规则）
+
+空格选择/取消，回车确认，q 退出
+```
+
+如无检测到任何分层结构，跳过此步骤，继续后续初始化流程。
+
 ### 交互式确认（如用户选择 [s]）
 
 ```
@@ -120,6 +189,74 @@ cd "${PROJECT_ROOT:-.}" && openspec init --schema sdd
 - `openspec/schemas/sdd/`
 
 **Override**：强制 `schema: sdd`（非默认值）
+
+#### 3. 生成分层 AGENTS.md（如用户选择）
+
+根据用户选择的分层列表，生成对应的 AGENTS.md 文件：
+
+```bash
+generate_layered_agents() {
+  local layers=("$@")
+  local template_dir="openspec/schemas/sdd/tech-rules"
+
+  for layer in "${layers[@]}"; do
+    local output_file="${layer}/AGENTS.md"
+    local template="${template_dir}/${layer}-layers.md"
+
+    if [ ! -d "${layer}" ]; then
+      echo "警告：目录 ${layer} 不存在，跳过"
+      continue
+    fi
+
+    # 加载模板
+    if [ -f "$template" ]; then
+      cat "$template" > "$output_file"
+    else
+      # Fallback：使用基础模板结构
+      echo "# ${layer} Layer Rules" > "$output_file"
+      echo "" >> "$output_file"
+      echo "## 职责说明" >> "$output_file"
+      echo "<!-- 待填充 -->" >> "$output_file"
+      echo "" >> "$output_file"
+      echo "## 依赖关系" >> "$output_file"
+      echo "<!-- 待填充 -->" >> "$output_file"
+    fi
+
+    # 扫描代码模式并追加
+    _scan_and_append_patterns "$layer" "$output_file"
+
+    echo "✓ 已生成 ${output_file}"
+  done
+}
+
+# 扫描并追加代码模式
+_scan_and_append_patterns() {
+  local layer="$1"
+  local output_file="$2"
+  local patterns=""
+
+  # 尝试扫描代码模式
+  patterns=$(_scan_layer_patterns "$layer")
+
+  if [ -z "$patterns" ]; then
+    # Fallback：无代码可扫描时保留占位符
+    echo "" >> "$output_file"
+    echo "## 代码模式示例" >> "$output_file"
+    echo "<!-- 项目暂无代码，待后续填充 -->" >> "$output_file"
+  else
+    echo "" >> "$output_file"
+    echo "## 代码模式示例" >> "$output_file"
+    echo "$patterns" >> "$output_file"
+  fi
+}
+```
+
+**产物**：
+- `frontend/AGENTS.md`（Monorepo，可选）
+- `backend/AGENTS.md`（Monorepo，可选）
+- `handler/AGENTS.md`（单体分层，可选）
+- `service/AGENTS.md`（单体分层，可选）
+- `repository/AGENTS.md`（单体分层，可选）
 
 ### 工具适配层生成
 
@@ -343,6 +480,76 @@ SDD 初始化完成
 | **测试模式** | 测试用例的编写方式 | 扫描测试目录，取 1 个典型测试文件 |
 | **配置模式** | 项目配置加载方式 | 扫描 config 目录或配置文件 |
 
+### 分层目录扫描（用于生成分层 AGENTS.md）
+
+针对 Monorepo 和单体分层架构，额外扫描以下目录：
+
+| 分层 | 扫描目录 | 典型文件 |
+|------|----------|----------|
+| **frontend/components** | `frontend/src/components/` | 取 1 个典型组件 |
+| **frontend/api** | `frontend/src/api/` 或 `frontend/src/services/` | 取 1 个请求封装 |
+| **frontend/state** | `frontend/src/store/` | 取 1 个 store 定义 |
+| **backend/handler** | `backend/handler/` 或 `backend/controllers/` | 取 1 个典型文件 |
+| **backend/service** | `backend/service/` | 取 1 个典型文件 |
+| **backend/repository** | `backend/repository/` 或 `backend/dao/` | 取 1 个典型文件 |
+| **handler** | `handler/` 或 `controllers/` 或 `internal/handler/` | 取 1 个典型文件 |
+| **service** | `service/` 或 `services/` 或 `internal/service/` | 取 1 个典型文件 |
+| **repository** | `repository/` 或 `dao/` 或 `internal/repository/` | 取 1 个典型文件 |
+
+### 分层扫描函数
+
+```bash
+_scan_layer_patterns() {
+  local layer="$1"
+  local patterns=""
+
+  case "$layer" in
+    frontend)
+      patterns=$(_scan_frontend_patterns)
+      ;;
+    backend)
+      patterns=$(_scan_backend_patterns)
+      ;;
+    handler)
+      patterns=$(_scan_handler_patterns)
+      ;;
+    service)
+      patterns=$(_scan_service_patterns)
+      ;;
+    repository)
+      patterns=$(_scan_repository_patterns)
+      ;;
+  esac
+
+  echo "$patterns"
+}
+
+_scan_frontend_patterns() {
+  local result=""
+  # 扫描组件
+  if [ -d "frontend/src/components" ]; then
+    local comp_file=$(find frontend/src/components -name "*.tsx" -o -name "*.vue" | head -1)
+    if [ -n "$comp_file" ]; then
+      result+="### 组件示例\n来源: ${comp_file}\n\`\`\`tsx\n$(head -40 "$comp_file")\n\`\`\`\n\n"
+    fi
+  fi
+  echo "$result"
+}
+
+_scan_backend_patterns() {
+  local result=""
+  # 扫描 Handler
+  if [ -d "backend/handler" ] || [ -d "backend/controllers" ]; then
+    local handler_dir=$(ls -d backend/handler backend/controllers 2>/dev/null | head -1)
+    local handler_file=$(find "$handler_dir" -name "*.go" | head -1)
+    if [ -n "$handler_file" ]; then
+      result+="### Handler 示例\n来源: ${handler_file}\n\`\`\`go\n$(head -40 "$handler_file")\n\`\`\`\n\n"
+    fi
+  fi
+  echo "$result"
+}
+```
+
 ### 提取规则
 
 1. **只取典型**：每种模式只取 1-2 个最具代表性的文件，不全部复制
@@ -429,6 +636,16 @@ def match_rule(rule, detected_tech_stack):
 ├── CLAUDE.md                          # "@AGENTS.md" 单行引用（Claude Code）
 ├── .codex/                            # 仅 Codex 环境
 │   └── AGENTS.md                      # "@../AGENTS.md"
+├── frontend/                          # Monorepo 前端（可选）
+│   └── AGENTS.md                      # 前端分层规则
+├── backend/                           # Monorepo 后端（可选）
+│   └── AGENTS.md                      # 后端分层规则
+├── handler/                           # 单体分层（可选）
+│   └── AGENTS.md                      # Handler 层规则
+├── service/                           # 单体分层（可选）
+│   └── AGENTS.md                      # Service 层规则
+├── repository/                        # 单体分层（可选）
+│   └── AGENTS.md                      # Repository 层规则
 └── openspec/
     ├── config.yaml                    # 精简：引用 project.md
     ├── project.md                     # 详细：项目信息 + SDD 工作流
