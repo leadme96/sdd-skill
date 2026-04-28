@@ -2,40 +2,17 @@
 name: sdd-apply
 description: Use when you want to apply the planned change using TDD. Invokes Superpowers TDD, worktrees, and debugging with SDD orchestration for batch management.
 argument-hint: "[project-root] [change-name] [batch-name]"
-version: "1.0.0"
+version: "1.1.0"
 user-invocable: true
 ---
 
 # SDD Apply
 
-按 TDD 实施变更。支持两种执行后端：**Codex**（优先）和 **Superpowers**（回退）。
+按 TDD 实施变更。使用 **Superpowers** 作为唯一执行后端。
 
-## 执行后端选择
+## 执行后端
 
-### 优先：Codex 后端
-
-当 `/codex:rescue` skill 可用时，优先委托给 Codex 执行。
-
-**检测方式**：检查 codex plugin 是否安装及脚本可用
-```bash
-[ -n "${CLAUDE_PLUGIN_ROOT}" ] && [ -d "${CLAUDE_PLUGIN_ROOT}" ] && [ -f "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" ] && echo "codex available"
-```
-
-**委托方式**：调用 `codex:rescue` skill（通过 Skill tool）
-```
-Skill tool: codex:rescue
-args: "<task-prompt> --write"
-```
-
-**Codex 执行流程**：
-1. SDD 前置逻辑：定位 change 目录、读取 plan.md、确定批次
-2. 构建 Codex prompt：包含 specs、design、tasks 上下文
-3. 调用 `Skill` tool 执行 `codex:rescue`
-4. SDD 后置逻辑：更新 tasks.md、记录 commit
-
-### 回退：Superpowers 后端
-
-当 Codex 不可用时，使用 Superpowers 流程：
+### Superpowers 后端
 
 **委托 skills**：
 - `superpowers:using-git-worktrees` — 创建分支
@@ -83,63 +60,15 @@ sdd-apply --team <project-root> <change-name>
 
 ### 前置逻辑（SDD 自有）
 
-1. **检测执行后端**
-   ```bash
-   # 检测 Codex plugin 可用性（包括脚本存在性检查）
-   if [ -n "${CLAUDE_PLUGIN_ROOT}" ] && [ -d "${CLAUDE_PLUGIN_ROOT}" ] && [ -f "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" ]; then
-     BACKEND="codex"
-   else
-     BACKEND="superpowers"
-   fi
-   ```
-
-2. 定位 change 目录
-3. 读取 `plan.md` 定位当前批次（或按 `tasks.md` 批次划分）
-4. 更新 `tasks.md` 中的批次状态
-5. **Skill Dispatch 调度**（如有配置）：
+1. 定位 change 目录
+2. 读取 `plan.md` 定位当前批次（或按 `tasks.md` 批次划分）
+3. 更新 `tasks.md` 中的批次状态
+4. **Skill Dispatch 调度**（如有配置）：
    - 读取 `openspec/config.yaml` 中的 `rules.skill_dispatch`
    - 匹配当前上下文（action=apply + 项目技术栈 + 变更文件路径）
    - 匹配成功则调用指定的 skill
 
 ### 核心执行
-
-#### Codex 后端
-
-**构建 prompt**：
-```
-## 任务背景
-- Change: <change-name>
-- Batch: <batch-name>
-- 目标分支: sdd/<change-name>
-
-## Spec 上下文
-[读取 openspec/changes/<change-name>/specs/ 中的 spec 内容]
-
-## Design 参考
-[读取 openspec/changes/<change-name>/design.md 关键决策]
-
-## Tasks 清单
-[读取 openspec/changes/<change-name>/tasks.md 当前批次任务]
-
-## TDD 要求
-- RED: 先写失败测试
-- GREEN: 最小实现通过测试
-- IMPROVE: 重构优化
-- 每个 commit 包含测试 + 实现
-```
-
-**执行方式**：
-```
-调用 Skill tool:
-  skill: "codex:rescue"
-  args: "<constructed-prompt> --write"
-```
-
-**Team Agent 模式 + Codex**：
-- 每个 batch 通过独立的 `codex:rescue` skill 调用执行
-- 使用后台 Task 并行启动多个 rescue 调用
-
-#### Superpowers 后端
 
 **单会话模式**：按顺序执行
 1. `superpowers:using-git-worktrees` — 创建 `sdd/<change-name>` 分支
@@ -246,6 +175,6 @@ cat openspec/changes/<change-name>/tasks.md | grep "\[x\]"
 
 ## 完成后引导
 
-> 本 action 已完成（后端：<Codex / Superpowers>，模式：<单会话 / team>，批次：<batch-name(s)>）。可安全 `/clear`。
+> 本 action 已完成（模式：<单会话 / team>，批次：<batch-name(s)>）。可安全 `/clear`。
 >
 > 推荐下一步：`sdd-review-code` 审查本批次

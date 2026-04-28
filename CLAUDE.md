@@ -10,27 +10,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Entry point**: `sdd-init` is always the first action for a new project. It runs `openspec init`, detects the tech stack, and generates project-specific context and rules.
 
-## Codex Integration
-
-SDD supports **OpenAI Codex** (via `openai/codex-plugin-cc` plugin) as an execution backend. When Codex is available, `sdd-apply` and `sdd-review-code` will delegate to Codex first:
-
-**Detection**:
-```bash
-# Check if Codex plugin is available
-[ -n "${CLAUDE_PLUGIN_ROOT}" ] && [ -d "${CLAUDE_PLUGIN_ROOT}" ]
-```
-
-**Delegation commands**:
-
-| Action | Method | Command |
-|--------|--------|---------|
-| `sdd-apply` | Skill tool | `skill: "codex:rescue", args: "<prompt> --write"` |
-| `sdd-review-code` | Bash (direct) | `node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" review --base <branch>` |
-
-**Important**: `codex:rescue` skill only supports `task` command, not `review`. For code review, call `codex-companion.mjs` directly.
-
-**Fallback**: If Codex is not available, fall back to Superpowers skills.
-
 ## Architecture
 
 ### Three Layers
