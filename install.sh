@@ -23,7 +23,7 @@ fi
 mkdir -p "$DEST"
 mkdir -p "$ORCHESTRATOR_DEST"
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Install orchestrator to .agents/skills/sdd
 orchestrator_src="$SCRIPT_DIR/.agents/skills/sdd"

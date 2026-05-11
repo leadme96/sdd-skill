@@ -3,7 +3,45 @@
 # sdd-init 读取此文件并注入到 config.yaml
 
 defaults:
-  # Python + FastAPI 场景
+  # === 前端 ===
+  
+  # React + TypeScript 前端
+  - trigger:
+      tech_stack:
+        - react
+        - typescript
+      path_pattern: "src/**/*.{ts,tsx}"
+    skill: ui-ux-pro-max
+    phases:
+      - brainstorm
+      - apply
+      - review
+
+  # Vue 前端
+  - trigger:
+      tech_stack:
+        - vue
+      path_pattern: "src/**/*.vue"
+    skill: ui-ux-pro-max
+    phases:
+      - brainstorm
+      - apply
+      - review
+
+  # Next.js 全栈前端
+  - trigger:
+      tech_stack:
+        - nextjs
+        - react
+      path_pattern: "**/*.{ts,tsx,js,jsx}"
+    skill: ui-ux-pro-max
+    phases:
+      - brainstorm
+      - apply
+
+  # === 后端 ===
+  
+  # Python + FastAPI 后端
   - trigger:
       tech_stack:
         - python
@@ -14,7 +52,7 @@ defaults:
       - apply
       - review
 
-  # Go 场景
+  # Go 后端
   - trigger:
       tech_stack:
         - go
@@ -24,23 +62,74 @@ defaults:
       - apply
       - review
 
-  # TypeScript/React 场景
-  - trigger:
-      tech_stack:
-        - typescript
-        - react
-      path_pattern: "src/**/*.{ts,tsx}"
-    skill: ui-ux-pro-max
-    phases:
-      - brainstorm
-      - apply
-
-  # Node.js 场景
+  # Node.js + Express 后端
   - trigger:
       tech_stack:
         - nodejs
+        - express
       path_pattern: "src/**/*.js"
     skill: nodejs-best-practices
+    phases:
+      - apply
+      - review
+
+  # === API 对接 ===
+  
+  # 前端 + 后端 API 对接（同时修改两端）
+  - trigger:
+      tech_stack:
+        - react
+        - typescript
+        - python
+        - fastapi
+      path_pattern: "api/**/*.py"
+    skill: python-fastapi-patterns
+    phases:
+      - apply
+    note: "后端 API 层优先匹配 FastAPI patterns"
+
+  - trigger:
+      tech_stack:
+        - react
+        - typescript
+        - python
+        - fastapi
+      path_pattern: "src/**/*.{ts,tsx}"
+    skill: ui-ux-pro-max
+    phases:
+      - apply
+    note: "前端 API 调用层匹配 UI patterns"
+
+  # OpenAPI/Swagger 规范驱动
+  - trigger:
+      tech_stack:
+        - openapi
+        - swagger
+      path_pattern: "openapi/**/*.yaml"
+    skill: python-fastapi-patterns
+    phases:
+      - brainstorm
+      - apply
+    note: "从 OpenAPI spec 生成 API 接口"
+
+  # === 通用规则 ===
+  
+  # TypeScript 基础（无 React）
+  - trigger:
+      tech_stack:
+        - typescript
+      path_pattern: "**/*.ts"
+    skill: typescript-best-practices
+    phases:
+      - apply
+      - review
+
+  # Python 基础（无 FastAPI）
+  - trigger:
+      tech_stack:
+        - python
+      path_pattern: "**/*.py"
+    skill: python-best-practices
     phases:
       - apply
       - review
@@ -58,3 +147,5 @@ defaults:
 # 1. 规则的 tech_stack 需全部存在于项目检测到的技术栈中（AND 逻辑）
 # 2. 当前 action 必须在规则的 phases 列表中
 # 3. 如指定 path_pattern，需至少一个变更文件匹配
+# 4. 多规则匹配时，按定义顺序依次调度
+# 5. 单条规则失败不中断后续规则执行
