@@ -1,0 +1,60 @@
+# SDD Skill Dispatch Defaults
+# 定义不同技术栈和场景下的默认 skill 调度规则
+# sdd-init 读取此文件并注入到 config.yaml
+
+defaults:
+  # Python + FastAPI 场景
+  - trigger:
+      tech_stack:
+        - python
+        - fastapi
+      path_pattern: "api/**/*.py"
+    skill: python-fastapi-patterns
+    phases:
+      - apply
+      - review
+
+  # Go 场景
+  - trigger:
+      tech_stack:
+        - go
+      path_pattern: "**/*.go"
+    skill: go-best-practices
+    phases:
+      - apply
+      - review
+
+  # TypeScript/React 场景
+  - trigger:
+      tech_stack:
+        - typescript
+        - react
+      path_pattern: "src/**/*.{ts,tsx}"
+    skill: ui-ux-pro-max
+    phases:
+      - brainstorm
+      - apply
+
+  # Node.js 场景
+  - trigger:
+      tech_stack:
+        - nodejs
+      path_pattern: "src/**/*.js"
+    skill: nodejs-best-practices
+    phases:
+      - apply
+      - review
+
+# 有效 phases 枚举
+# - brainstorm — 设计探索阶段
+# - propose — 提案固化阶段
+# - plan — 实施计划阶段
+# - apply — TDD 实现阶段
+# - review — 代码审查阶段
+# - verify — 综合验证阶段
+# - ship — 归档合并阶段
+
+# 匹配规则
+# 1. 规则的 tech_stack 需全部存在于项目检测到的技术栈中（AND 逻辑）
+# 2. 当前 action 必须在规则的 phases 列表中
+# 3. 如指定 path_pattern，需至少一个变更文件匹配

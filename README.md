@@ -17,26 +17,6 @@ AI 辅助开发的两个核心痛点：
 
 SDD 让两者互补。
 
-## Codex 集成
-
-SDD 支持 **OpenAI Codex** (通过 `openai/codex-plugin-cc` 插件) 作为执行后端。当 Codex 可用时，`sdd-apply` 和 `sdd-review-code` 会优先委托给 Codex 执行：
-
-| Action | Codex 可用时 | Codex 不可用时 |
-|--------|-------------|---------------|
-| `sdd-apply` | `Skill tool: codex:rescue` | Superpowers TDD |
-| `sdd-review-code` | `codex-companion.mjs review` | Superpowers 两阶段审查 |
-
-**调用方式**：
-- `sdd-apply` → 调用 `codex:rescue` skill（通过 Skill tool）
-- `sdd-review-code` → 直接调用 `codex-companion.mjs` 脚本（因为 `rescue` 不支持 `review` 命令）
-
-**Codex 后端优势**：
-- 更强的代码生成能力
-- 内置审查器同时检查 spec 合规性和代码质量
-- 支持对抗性审查模式
-
-**检测逻辑**：自动检查 `${CLAUDE_PLUGIN_ROOT}` 环境变量，优先使用 Codex，回退到 Superpowers。
-
 ## 核心理念
 
 ### Action Not Phases
@@ -58,42 +38,99 @@ brainstorm.md → proposal.md → specs/ → design.md → tasks.md → plan.md 
 SDD skill 只做编排，核心工作委托给底层 skill：
 
 ```
-用户 ──→ sdd-* skills（唯一入口）
-             │
-             ├── invoke → Superpowers skills（brainstorming / TDD / debugging...）
-             ├── invoke → OpenSpec skills（continue-change / ff-change / verify...）
-             └── SDD 自有逻辑（前置检查 / review 循环 / 产物校验）
+用户 ──→ sdd skills（唯一入口）
+              │
+              ├── invoke → Superpowers skills（brainstorming / TDD / debugging...）
+              ├── invoke → OpenSpec skills（continue-change / ff-change / verify...）
+              └── SDD 自有逻辑（前置检查 / review 循环 / 产物校验）
 ```
 
-## 12 个 Actions
+## 双轨架构
+
+### 统一入口（自动编排）
+
+```bash
+/sdd ./my-project 添加用户登录    # 自动判断路径并执行
+/sdd ./my-project               # 显示当前状态
+```
+
+### 独立入口（手动调用）
+
+```bash
+/sdd-init ./my-project          # 初始化项目
+/sdd-doctor ./my-project        # 诊断环境
+/sdd-propose ./my-project ...   # 创建变更提案
+/sdd-brainstorm ./my-project    # 深度探索设计
+/sdd-ff ./my-project ...        # 快进生成规划文档
+/sdd-plan ./my-project ...      # 细化实施计划
+/sdd-apply ./my-project ...     # TDD 实施
+/sdd-review-spec ./my-project   # Spec 审查
+/sdd-review-code ./my-project   # 代码审查
+/sdd-verify ./my-project        # 综合验证
+/sdd-ship ./my-project          # 归档合并
+```
+
+## 目录结构
+
+```
+sdd-skill/
+├── .agents/skills/sdd/           # 编排器
+│   ├── SKILL.md
+│   └── prompts/session-context.md
+├── openspec/schemas/sdd/        # Schema + 模板 + 配置
+│   ├── schema.yaml
+│   ├── templates/
+│   ├── tech-rules/
+│   ├── errors.md                # 集中错误码
+│   ├── prompts/                 # Reviewer prompts
+│   └── skill-dispatch-defaults.yaml
+├── sdd-init/SKILL.md
+├── sdd-doctor/SKILL.md
+├── sdd-brainstorm/SKILL.md
+├── sdd-propose/SKILL.md
+├── sdd-continue/SKILL.md
+├── sdd-ff/SKILL.md
+├── sdd-plan/SKILL.md
+├── sdd-apply/SKILL.md
+├── sdd-review-spec/SKILL.md
+├── sdd-review-code/SKILL.md
+├── sdd-verify/SKILL.md
+├── sdd-ship/SKILL.md
+├── README.md
+├── CLAUDE.md
+└── install.sh
+```
+
+## 13 个 Actions
 
 | Action | 委托给 | 何时使用 |
 |--------|--------|----------|
-| `sdd-init` | `agents init` + `openspec:init` | 一站式项目初始化，集成 agents CLI + OpenSpec + Superpowers |
-| `sdd-doctor` | 无 | 诊断环境，检查 skill 完整性和变更状态 |
+| `sdd` | 编排器 | 统一入口，自动编排 |
+| `sdd-init` | `openspec init` + tech detection | 项目初始化 |
+| `sdd-doctor` | 无 | 诊断环境 |
 | `sdd-brainstorm` | `superpowers:brainstorming` | 想深度探索设计 |
 | `sdd-propose` | `openspec:continue-change` | 想固化提案 |
-| `sdd-continue` | `openspec:continue-change` | 识别并生成下一个缺失的 artifact |
-| `sdd-ff` | `openspec:ff-change` | 想快进生成所有规划文档 |
-| `sdd-plan` | `superpowers:writing-plans` | 想细化实施计划 |
-| `sdd-apply` | **Codex** (优先) 或 `superpowers:tdd` | 想按 TDD 实施 |
-| `sdd-review-spec` | subagent | 想审查 spec 质量 |
-| `sdd-review-code` | **Codex** (优先) 或 `superpowers:code-review` | 想审查代码 |
-| `sdd-verify` | `superpowers:verification` + `openspec:verify` | 想全面验证 |
-| `sdd-ship` | `openspec:archive` + `superpowers:finish-branch` | 想归档合并 |
+| `sdd-continue` | `openspec:continue-change` | 生成下一个缺失 artifact |
+| `sdd-ff` | `openspec:ff-change` | 快进生成所有规划文档 |
+| `sdd-plan` | `superpowers:writing-plans` | 细化实施计划 |
+| `sdd-apply` | `superpowers:tdd` | TDD 实施 |
+| `sdd-review-spec` | subagent | Spec 审查 |
+| `sdd-review-code` | `superpowers:requesting-code-review` | 代码审查 |
+| `sdd-verify` | `superpowers:verification` + `openspec:verify` | 综合验证 |
+| `sdd-ship` | `openspec:archive` + `superpowers:finish-branch` | 归档合并 |
 
 ## 典型工作流
 
 ### 大特性标准路径
 
 ```bash
-sdd-init           → .agents/ + AGENTS.md + openspec/ + CLAUDE.md + superpowers skills
+sdd-init           → .agents/ + AGENTS.md + openspec/
 /clear
 sdd-brainstorm   → brainstorm.md
 /clear
 sdd-ff           → proposal.md + specs/ + design.md + tasks.md
 /clear
-sdd-review-spec  → reviews/spec-r1.md  # 大特性推荐
+sdd-review-spec  → reviews/spec-r1.md
 /clear
 sdd-plan         → plan.md
 /clear
@@ -118,120 +155,29 @@ sdd-init → /clear → sdd-propose → /clear → sdd-ff → /clear → sdd-pla
 
 跳过 brainstorm（需求已明确）、跳过 spec review（改动小）、跳过独立 verify（ship 内置验证）。
 
-## Team Agent 并行模式
-
-`sdd-apply` 支持通过 Team Agent 并行执行多个批次，适用于大型变更。
-
-### 使用场景
-
-- 大改动（3+ 个批次）
-- 批次间无依赖关系
-- 需要快速完成
-
-### 启用方式
-
-```bash
-sdd-apply --team <project-root> <change-name>
-```
-
-或直接说："用 team 方式执行 sdd-apply"
-
-### 工作原理
-
-1. 读取 `plan.md` 按批次拆分任务
-2. 每个批次分配独立 agent 并行执行
-3. 每个 agent 执行完整 TDD 流程（RED → GREEN → IMPROVE）
-4. 所有批次完成后合并到主分支
-
-### 限制
-
-- 有依赖关系的批次按 DAG 顺序执行
-- 需要目标项目是 git 仓库
-- 各批次不应修改同一文件（否则会冲突）
-
-### 批次划分建议
-
-| 变更类型 | 建议批次数 | 推荐模式 |
-|----------|-----------|----------|
-| 小修复 | 1-2 | 单会话 |
-| 中等特性 | 2-3 | 单会话 |
-| 大特性 | 3+ | Team Agent |
-
-## 目录结构
-
-```
-<project-root>/
-├── .agents/                        # agents CLI 管理
-│   └── agents.json
-├── AGENTS.md                       # Karpathy 4 原则（通用规范）
-├── CLAUDE.md                       # "@AGENTS.md" 单行引用（Claude Code）
-├── .codex/                         # 仅 Codex 环境
-│   └── AGENTS.md                   # "@../AGENTS.md"
-└── openspec/
-    ├── config.yaml                 # 精简：引用 project.md
-    ├── project.md                  # 详细：项目信息 + SDD 工作流
-    ├── specs/                      # 全局 spec（归档后合并至此）
-    ├── schemas/
-    │   └── sdd/                    # SDD schema + 模板
-    │       ├── schema.yaml         # artifact 定义、依赖链
-    │       └── templates/
-    │           ├── brainstorm.md
-    │           ├── proposal.md
-    │           ├── spec.md
-    │           ├── design.md
-    │           ├── tasks.md
-    │           ├── plan.md
-    │           └── review.md
-    └── changes/
-        ├── <change-name>/          # 活跃变更
-        │   ├── brainstorm.md
-        │   ├── proposal.md
-        │   ├── specs/<capability>/spec.md
-        │   ├── design.md
-        │   ├── tasks.md
-        │   ├── plan.md
-        │   └── reviews/
-        └── archive/YYYY-MM-DD-<name>/  # 归档变更
-```
-
-## 三层架构
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│              SDD Action Skills（编排层）                       │
-│  sdd-brainstorm  sdd-propose  sdd-ff  sdd-plan  sdd-apply   │
-│  sdd-continue  sdd-review-spec  sdd-review-code             │
-│  sdd-verify  sdd-ship  sdd-doctor                           │
-└───────────────┬──────────────────────┬──────────────────────┘
-                │                      │
-    ┌───────────▼───────────┐  ┌───────▼──────────────────────┐
-    │   Superpowers（纪律层） │  │   OpenSpec（规格层）           │
-    │  brainstorming         │  │  Schema / 模板系统            │
-    │  writing-plans         │  │  continue-change / ff-change │
-    │  test-driven-development│  │  verify-change / archive     │
-    │  systematic-debugging  │  │  sync-specs                  │
-    │  requesting-code-review│  │  Delta Spec 格式             │
-    │  using-git-worktrees   │  │                              │
-    │  verification          │  │                              │
-    │  finishing-a-development-branch │                        │
-    └────────────────────────┘  └──────────────────────────────┘
-```
-
-## 渐进采用策略
-
-| 阶段 | 使用的 Action | 建立的习惯 |
-|------|--------------|-----------|
-| 第一阶段 | `sdd-propose` → `sdd-ff` → `sdd-plan` → `sdd-apply` → `sdd-ship` | spec 驱动 + TDD |
-| 第二阶段 | + `sdd-review-spec` + `sdd-review-code` | 审查纪律 |
-| 第三阶段 | + `sdd-brainstorm` + `sdd-verify` | 完整工程纪律 |
-
 ## 安装
 
 项目级安装：
 ```bash
+bash install.sh
+```
+
+或手动安装：
+```bash
+# 安装编排器
+mkdir -p .agents/skills
+ln -s "$(pwd)/sdd-skill/.agents/skills/sdd" .agents/skills/sdd
+
+# 安装 12 个 action skills
+mkdir -p .claude/skills
 for skill in sdd-init sdd-doctor sdd-brainstorm sdd-propose sdd-continue sdd-ff sdd-plan sdd-apply sdd-review-spec sdd-review-code sdd-verify sdd-ship; do
   ln -s "$(pwd)/sdd-skill/$skill" .claude/skills/$skill
 done
+```
+
+卸载：
+```bash
+rm -rf .agents/skills/sdd .claude/skills/sdd-*
 ```
 
 ## Next Action 引导

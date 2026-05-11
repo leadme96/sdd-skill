@@ -2,7 +2,7 @@
 name: sdd-apply
 description: Use when you want to apply the planned change using TDD. Invokes Superpowers TDD, worktrees, and debugging with SDD orchestration for batch management.
 argument-hint: "[project-root] [change-name] [batch-name]"
-version: "1.1.0"
+version: "2.0.0"
 user-invocable: true
 ---
 
@@ -106,72 +106,28 @@ sdd-apply --team <project-root> <change-name>
 - 配套测试
 - Git commits（在 `sdd/<change-name>` 分支上）
 
-## Skill Dispatch 匹配规则
+## Skill Dispatch
 
 各 SDD action 在前置逻辑中会检查 `openspec/config.yaml` 的 `rules.skill_dispatch` 配置，匹配当前上下文并调用指定 skill。
 
-### 匹配条件
+匹配规则详见 `openspec/schemas/sdd/skill-dispatch-defaults.yaml`。
 
-| 条件 | 说明 |
-|------|------|
-| `trigger.tech_stack` | 规则中所有值需存在于项目检测到的技术栈中（AND 逻辑） |
-| `trigger.path_pattern` | 如指定，需至少一个变更文件匹配该 glob 模式 |
-| `phases` | 当前 action 名称需在规则的 phases 列表中 |
-| `trigger.tags` | 当前版本不参与匹配（保留扩展位） |
+### Team Agent 并行执行
 
-### 匹配算法
+由 sdd 编排器负责批次拆分和并行调度。本 skill 只执行单批次 TDD 流程。
 
-```python
-def match_rule(rule, context):
-    # tech_stack: 所有指定值必须都存在于检测到的技术栈中
-    if not all(ts in context.tech_stack for ts in rule.trigger.tech_stack):
-        return False
+编排器判断条件：
+- plan.md 包含 3+ 个批次
+- 批次间无文件交叉修改
+- 目标项目是 git 仓库
 
-    # phases: 当前 action 必须在列表中
-    if context.action not in rule.phases:
-        return False
-
-    # path_pattern: 如指定，需至少一个变更文件匹配
-    if rule.trigger.path_pattern:
-        if not any(match_glob(rule.trigger.path_pattern, f) for f in context.changed_files):
-            return False
-
-    return True
-```
-
-### 多规则调度
-
-- 多条规则匹配时，按 `config.yaml` 中定义顺序依次调度
-- 单条规则失败不中断后续规则执行
-- 调度是增强型，不替代 SDD 内置流程
-
-### 错误处理
-
-| 场景 | 处理方式 |
-|------|----------|
-| `phases: []` | 跳过该规则 |
-| 指定的 skill 不存在 | 记录警告，跳过该规则 |
-| skill 调用失败 | 记录错误，继续执行底层 skill |
-
+不满足时回退到单会话顺序执行。
 
 ## 错误处理
 
-### 常见错误
+参见 `openspec/schemas/sdd/errors.md`
 
-| 错误 | 原因 | 恢复方法 |
-|------|------|----------|
-| change 目录不存在 | 未执行 sdd-propose | 先执行 `sdd-propose` 创建提案 |
-| artifact 缺失 | 前置步骤未完成 | 执行 `sdd-ff` 补全 artifact |
-
-### 状态检查
-
-```bash
-# 检查变更目录状态
-ls openspec/changes/<change-name>/
-
-# 检查 artifact 完整性
-cat openspec/changes/<change-name>/tasks.md | grep "\[x\]"
-```
+本 skill 可能触发：E002, E005, E006, E007
 
 ## 完成后引导
 
