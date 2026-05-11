@@ -1,0 +1,141 @@
+# SDD Artifact Schema
+# 定义变更 artifact 的结构、依赖链和字段约束
+
+version: "2.0.0"
+
+# 依赖链（从前到后）
+dependency_chain:
+  - brainstorm.md     # optional
+  - proposal.md       # required
+  - specs/            # required (目录)
+  - design.md         # optional
+  - tasks.md          # required
+  - plan.md           # required
+
+# Artifact 定义
+artifacts:
+  brainstorm:
+    file: brainstorm.md
+    required: false
+    template: templates/brainstorm.md
+    generated_by: sdd-brainstorm
+    sections:
+      - name: 问题定义
+        required: true
+      - name: 方案探索
+        required: true
+      - name: 决策记录
+        required: true
+      - name: 风险与权衡
+        required: false
+
+  proposal:
+    file: proposal.md
+    required: true
+    template: templates/proposal.md
+    generated_by: sdd-propose
+    depends_on: [brainstorm]
+    sections:
+      - name: 变更概述
+        required: true
+      - name: 目标与约束
+        required: true
+      - name: 决策追溯
+        required: true
+        constraint: "如 brainstorm.md 存在，必须引用其关键决策"
+      - name: 影响范围
+        required: true
+      - name: 验收标准
+        required: true
+
+  specs:
+    file: "specs/<capability>/spec.md"
+    required: true
+    template: templates/spec.md
+    generated_by: sdd-ff
+    depends_on: [proposal]
+    is_directory: true
+    sections:
+      - name: Capability 概述
+        required: true
+      - name: 接口定义
+        required: true
+      - name: 行为规格
+        required: true
+      - name: 错误处理
+        required: true
+      - name: 约束与不变量
+        required: false
+
+  design:
+    file: design.md
+    required: false
+    template: templates/design.md
+    generated_by: sdd-ff
+    depends_on: [specs]
+    sections:
+      - name: 架构概览
+        required: true
+      - name: 组件设计
+        required: true
+      - name: 数据模型
+        required: false
+      - name: 关键路径
+        required: true
+      - name: 技术决策
+        required: true
+
+  tasks:
+    file: tasks.md
+    required: true
+    template: templates/tasks.md
+    generated_by: sdd-ff
+    depends_on: [design, specs]
+    sections:
+      - name: 任务列表
+        required: true
+        constraint: "每条任务必须链接到对应的 spec"
+      - name: 依赖关系
+        required: false
+      - name: 估算
+        required: false
+
+  plan:
+    file: plan.md
+    required: true
+    template: templates/plan.md
+    generated_by: sdd-plan
+    depends_on: [tasks, specs, design]
+    sections:
+      - name: 批次划分
+        required: true
+        constraint: "批次间无文件交叉修改"
+      - name: 每批次任务
+        required: true
+        constraint: "包含文件路径、测试代码、运行命令"
+      - name: 验证检查点
+        required: true
+      - name: 回滚策略
+        required: false
+
+  review:
+    file: "reviews/<type>-r<N>.md"
+    required: false
+    template: templates/review.md
+    generated_by: sdd-review-spec / sdd-review-code
+    depends_on: [specs, design]  # spec-review 或 [代码] code-review
+    types:
+      spec: "reviews/spec-r<N>.md"
+      brainstorm: "reviews/brainstorm-r<N>.md"
+      plan: "reviews/plan-r<N>.md"
+      code: "reviews/code-<batch>-r<N>.md"
+    sections:
+      - name: 审查对象
+        required: true
+      - name: 结论
+        required: true
+        constraint: "Approved / Issues / Blocked"
+      - name: 发现问题
+        required: false
+      - name: 建议改进
+        required: false
