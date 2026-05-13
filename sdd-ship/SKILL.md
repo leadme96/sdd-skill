@@ -1,6 +1,6 @@
 ---
 name: sdd-ship
-description: Use to finalize a change — run final verification, sync specs to global store, archive the change, and finish the branch. Invokes OpenSpec and Superpowers skills.
+description: 归档合并。最终步骤：同步 specs、归档变更、完成分支。
 argument-hint: "[project-root] [change-name]"
 version: "2.0.0"
 user-invocable: true
@@ -10,49 +10,29 @@ user-invocable: true
 
 归档合并。SDD 工作流的最终步骤。
 
-## 三段式结构
+## Workflow
 
-### 前置逻辑（SDD 自有）
-1. 定位 change 目录
-2. 执行最终验证（内置验证，不依赖 sdd-verify 已执行）
-3. 确认验证通过
-4. **Skill Dispatch 调度**（如有配置）：
-   - 读取 `openspec/config.yaml` 中的 `rules.skill_dispatch`
-   - 匹配当前上下文（action=ship + 项目技术栈 + 变更文件路径）
-   - 匹配成功则调用指定的 skill
+**前置**: 定位 change 目录 → 执行内置最终验证 → 确认验证通过 → Skill Dispatch（如有配置）。
 
-### 核心执行（invoke 底层 skill，顺序执行三步）
-按顺序 invoke 三个底层 skills：
+**执行**（严格顺序）:
+1. `openspec:sync-specs` → 同步 specs 到全局 `openspec/specs/`
+2. `openspec:archive-change` → 归档到 `openspec/changes/archive/YYYY-MM-DD-<name>/`
+3. `superpowers:finishing-a-development-branch` → 合并到主分支
 
-**Override 项**：
-- 执行顺序：三步必须严格顺序执行，不能跳过或颠倒
-  1. `openspec:sync-specs` → 将变更中的 specs 同步到全局 `openspec/specs/`
-  2. `openspec:archive-change` → 将变更目录归档到 `openspec/changes/archive/YYYY-MM-DD-<name>/`
-  3. `superpowers:finishing-a-development-branch` → 完成开发分支（合并到主分支）
-
-**保留项**：
-- `openspec:sync-specs` 的全局 spec 同步逻辑
-- `openspec:archive-change` 的归档逻辑
-- `superpowers:finishing-a-development-branch` 的分支合并逻辑
-
-### 后置逻辑（SDD 自有）
-1. 确认归档成功
-2. 确认分支已清理
-3. 输出最终状态
+**后置**: 确认归档成功 → 确认分支已清理 → 输出最终状态。
 
 ## 产物
 
-- 全局 specs 更新
-- 变更归档
-- 主分支更新
+```
+openspec/specs/ (更新)
+openspec/changes/archive/YYYY-MM-DD-<change>/ (归档)
+主分支更新
+```
 
+## 参考
 
-## 错误处理
+- errors.md: E002, E006, E010
 
-参见 `openspec/schemas/sdd/errors.md`
+## 下一步
 
-本 skill 可能触发：E002, E006, E010
-
-## 完成后引导
-
-> 本 action 已完成，变更已归档至 `openspec/changes/archive/`。可安全 `/clear`。
+- 变更已归档，可安全 `/clear` 或开始新的变更
